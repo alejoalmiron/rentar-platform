@@ -1,0 +1,60 @@
+syntax = "proto3";
+
+package rental.v1;
+
+service RentalService {
+  rpc CrearRenta (CrearRentaRequest) returns (RentaResponse);
+  rpc ObtenerRenta (ObtenerRentaRequest) returns (RentaResponse);
+  rpc ListarRentasPorCliente (ListarRentasPorClienteRequest) returns (ListarRentasResponse);
+  rpc CancelarRenta (CancelarRentaRequest) returns (RentaResponse);
+  rpc ObtenerHistorialRentas (ObtenerHistorialRentasRequest) returns (ListarRentasResponse);
+  rpc VerificarSolapamiento (VerificarSolapamientoRequest) returns (VerificarSolapamientoResponse);
+}
+
+message RentaResponse {
+  string id = 1;
+  string clienteId = 2;
+  string vehiculoId = 3;
+  string fechaInicio = 4;
+  string fechaFin = 5;
+  string estado = 6; 
+  double precioTotal = 7;
+}
+
+message CrearRentaRequest {
+  string clienteId = 1;
+  string vehiculoId = 2;
+  string fechaInicio = 3;
+  string fechaFin = 4;
+  double precioTotal = 5;
+}
+
+message ObtenerRentaRequest {
+  string id = 1;
+}
+
+message ListarRentasPorClienteRequest {
+  string clienteId = 1;
+}
+
+message ListarRentasResponse {
+  repeated RentaResponse rentas = 1;
+}
+
+message CancelarRentaRequest {
+  string id = 1;
+}
+
+message ObtenerHistorialRentasRequest {
+  string clienteId = 1; 
+}
+
+message VerificarSolapamientoRequest {
+  string vehiculoId = 1;
+  string fechaInicio = 2;
+  string fechaFin = 3;
+}
+
+message VerificarSolapamientoResponse {
+  bool haySolapamiento = 1;
+}
