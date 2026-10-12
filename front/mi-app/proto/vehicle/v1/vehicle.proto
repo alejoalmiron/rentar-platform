@@ -1,0 +1,77 @@
+syntax = "proto3";
+
+package rentar.vehicle.v1;
+
+service VehicleService {
+  rpc ListVehicles (ListVehiclesRequest) returns (ListVehiclesResponse);
+  rpc GetVehicle (GetVehicleRequest) returns (VehicleResponse);
+  rpc GetVehicleByPlate (GetVehicleByPlateRequest) returns (VehicleResponse);
+  rpc CreateVehicle (CreateVehicleRequest) returns (VehicleResponse);
+  rpc UpdateVehicle (UpdateVehicleRequest) returns (VehicleResponse);
+  rpc DeactivateVehicle (DeactivateVehicleRequest) returns (DeactivateVehicleResponse);
+  rpc CheckVehicleOperational (CheckVehicleOperationalRequest) returns (CheckVehicleOperationalResponse);
+  rpc CheckVehicleAvailability (CheckVehicleAvailabilityRequest) returns (CheckVehicleAvailabilityResponse);
+}
+
+message VehicleMessage {
+  string patente = 1;
+  string marca = 2;
+  string modelo = 3;
+  int32 anio = 4;
+  string color = 5;
+  string tipo = 6;
+  double precio_diario = 7;
+  string estado = 8;
+}
+
+message ListVehiclesRequest {}
+message ListVehiclesResponse {
+  repeated VehicleMessage vehiculos = 1;
+}
+
+message GetVehicleRequest {
+  string id = 1;
+}
+
+message GetVehicleByPlateRequest {
+  string patente = 1;
+}
+
+message VehicleResponse {
+  VehicleMessage vehiculo = 1;
+}
+
+message CreateVehicleRequest {
+  VehicleMessage vehiculo = 1;
+}
+
+message UpdateVehicleRequest {
+  string patente = 1;
+  VehicleMessage vehiculo = 2;
+}
+
+message DeactivateVehicleRequest {
+  string patente = 1;
+}
+
+message DeactivateVehicleResponse {
+  bool success = 1;
+}
+
+message CheckVehicleOperationalRequest {
+  string patente = 1;
+}
+
+message CheckVehicleOperationalResponse {
+  bool operational = 1;
+}
+
+message CheckVehicleAvailabilityRequest {
+  string patente = 1;
+  string fecha_inicio = 2;
+  string fecha_fin = 3;
+}
+
+message CheckVehicleAvailabilityResponse {
+  bool available = 1;
+}

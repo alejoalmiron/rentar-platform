@@ -1,0 +1,65 @@
+syntax = "proto3";
+
+package rentar.customer.v1;
+
+service CustomerService {
+  rpc ListCustomers (ListCustomersRequest) returns (ListCustomersResponse);
+  rpc GetCustomer (GetCustomerRequest) returns (CustomerResponse);
+  rpc GetCustomerByDocument (GetCustomerByDocumentRequest) returns (CustomerResponse);
+  rpc CreateCustomer (CreateCustomerRequest) returns (CustomerResponse);
+  rpc UpdateCustomer (UpdateCustomerRequest) returns (CustomerResponse);
+  rpc DeactivateCustomer (DeactivateCustomerRequest) returns (DeactivateCustomerResponse);
+  rpc ValidateCustomer (ValidateCustomerRequest) returns (ValidateCustomerResponse);
+}
+
+message CustomerMessage {
+  string dni = 1;
+  string nombre = 2;
+  string apellido = 3;
+  string email = 4;
+  string telefono = 5;
+  string estado = 6;
+}
+
+message ListCustomersRequest {}
+message ListCustomersResponse {
+  repeated CustomerMessage clientes = 1;
+}
+
+message GetCustomerRequest {
+  string id = 1;
+}
+
+message GetCustomerByDocumentRequest {
+  string dni = 1;
+}
+
+message CustomerResponse {
+  CustomerMessage cliente = 1;
+}
+
+message CreateCustomerRequest {
+  CustomerMessage cliente = 1;
+}
+
+message UpdateCustomerRequest {
+  string dni = 1;
+  CustomerMessage cliente = 2;
+}
+
+message DeactivateCustomerRequest {
+  string dni = 1;
+}
+
+message DeactivateCustomerResponse {
+  bool success = 1;
+}
+
+message ValidateCustomerRequest {
+  string dni = 1;
+}
+
+message ValidateCustomerResponse {
+  bool is_active = 1;
+  bool can_rent = 2;
+}

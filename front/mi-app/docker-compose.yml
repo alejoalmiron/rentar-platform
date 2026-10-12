@@ -1,0 +1,115 @@
+version: '3.8'
+
+services:
+  # ==================== BASES DE DATOS ====================
+  vehicle-db:
+    image: mysql:8.0
+    container_name: vehicle-db
+    environment:
+      MYSQL_DATABASE: vehicle_db
+      MYSQL_ROOT_PASSWORD: rootpassword
+    ports:
+      - "3306:3306"
+    volumes:
+      - vehicle_data:/var/lib/mysql
+    networks:
+      - rentar-net
+
+  customer-db:
+    image: mysql:8.0
+    container_name: customer-db
+    environment:
+      MYSQL_DATABASE: customer_db
+      MYSQL_ROOT_PASSWORD: rootpassword
+    ports:
+      - "3307:3306"
+    volumes:
+      - customer_data:/var/lib/mysql
+    networks:
+      - rentar-net
+
+  rental-db:
+    image: mysql:8.0
+    container_name: rental-db
+    environment:
+      MYSQL_DATABASE: rental_db
+      MYSQL_ROOT_PASSWORD: rootpassword
+    ports:
+      - "3308:3306"
+    volumes:
+      - rental_data:/var/lib/mysql
+    networks:
+      - rentar-net
+
+  # ==================== MICROSERVICIOS ====================
+  vehicle-service:
+    build: ./vehicle-service
+    container_name: vehicle-service
+    ports:
+      - "5001:5001"
+    environment:
+      - DB_HOST=vehicle-db
+      - DB_NAME=vehicle_db
+      - DB_USER=root
+      - DB_PASSWORD=rootpassword
+    depends_on:
+      - vehicle-db
+    networks:
+      - rentar-net
+
+  customer-service:
+    build: ./customer-service
+    container_name: customer-service
+    ports:
+      - "5002:5002"
+    environment:
+      - DB_HOST=customer-db
+      - DB_NAME=customer_db
+      - DB_USER=root
+      - DB_PASSWORD=rootpassword
+    depends_on:
+      - customer-db
+    networks:
+      - rentar-net
+
+  rental-service:
+    build: ./rental-service
+    container_name: rental-service
+    ports:
+      - "5003:5003"
+    environment:
+      - DB_HOST=rental-db
+      - DB_NAME=rental_db
+      - DB_USER=root
+      - DB_PASSWORD=rootpassword
+    depends_on:
+      - rental-db
+    networks:
+      - rentar-net
+
+  # ==================== API GATEWAY ====================
+  api-gateway:
+    build: ./gateway-node
+    container_name: api-gateway
+    ports:
+      - "5000:5000"
+    environment:
+      - PORT=5000
+      - VEHICLE_SERVICE_URL=vehicle-service:5001
+      - CUSTOMER_SERVICE_URL=customer-service:5002
+      - RENTAL_SERVICE_URL=rental-service:5003
+    depends_on:
+      - vehicle-service
+      - customer-service
+      - rental-service
+    networks:
+      - rentar-net
+
+volumes:
+  vehicle_data:
+  customer_data:
+  rental_data:
+
+networks:
+  rentar-net:
+    driver: bridge
