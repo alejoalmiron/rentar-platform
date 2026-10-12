@@ -1,0 +1,59 @@
+syntax = "proto3";
+
+package customer.v1;
+
+service CustomerService {
+  rpc ListCustomers (Empty) returns (CustomerListResponse);
+  rpc GetCustomerById (CustomerByIdRequest) returns (CustomerResponse);
+  rpc CreateCustomer (CreateCustomerRequest) returns (CustomerResponse);
+  rpc UpdateCustomer (UpdateCustomerRequest) returns (CustomerResponse);
+  rpc DeactivateCustomer (DeactivateCustomerRequest) returns (CustomerResponse);
+  rpc ValidateActiveCustomer (ValidateCustomerRequest) returns (ValidateCustomerResponse);
+}
+
+message Empty {}
+
+message CustomerResponse {
+  string id = 1;
+  string dni = 2;
+  string nombre = 3;
+  string apellido = 4;
+  string email = 5;
+  bool activo = 6;
+}
+
+message CustomerListResponse {
+  repeated CustomerResponse customers = 1;
+}
+
+message CustomerByIdRequest {
+  string id = 1;
+}
+
+message CreateCustomerRequest {
+  string dni = 1;
+  string nombre = 2;
+  string apellido = 3;
+  string email = 4;
+}
+
+message UpdateCustomerRequest {
+  string id = 1;
+  string nombre = 2;
+  string apellido = 3;
+  string email = 4;
+}
+
+message DeactivateCustomerRequest {
+  string id = 1;
+}
+
+message ValidateCustomerRequest {
+  string id = 1;
+}
+
+message ValidateCustomerResponse {
+  bool exists = 1;
+  bool is_active = 2;
+  string message = 3;
+}
