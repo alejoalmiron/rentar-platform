@@ -12,6 +12,18 @@ sys.path.insert(0, generated_dir)
 
 from app.generated.rental.v1 import rental_pb2, rental_pb2_grpc
 
+from app.db import SessionLocal
+from app.repository import RentalModel
+
+@pytest.fixture(autouse=True)
+def limpiar_db():
+    db = SessionLocal()
+    try:
+        db.query(RentalModel).delete()
+        db.commit()
+    finally:
+        db.close()
+
 @pytest.fixture(scope="module")
 def pyt_channel():
     channel = grpc.insecure_channel('localhost:50053')

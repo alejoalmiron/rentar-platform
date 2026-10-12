@@ -1,3 +1,11 @@
+import sys
+import os
+
+current_dir = os.path.dirname(os.path.abspath(__file__))
+generated_path = os.path.join(current_dir, "generated")
+if generated_path not in sys.path:
+    sys.path.append(generated_path)
+
 from concurrent import futures
 import time
 import grpc
