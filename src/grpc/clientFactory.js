@@ -15,7 +15,7 @@ function getClient(serviceKey) {
   const serviceConfig = grpcConfig.services[serviceKey];
   if (!serviceConfig) throw new Error(`Servicio gRPC desconocido: ${serviceKey}`);
 
-  const protoPath = path.join(grpcConfig.protoRoot, serviceConfig.file);
+  const protoPath = path.join(serviceConfig.protoRoot || grpcConfig.protoRoot, serviceConfig.file);
   let packageDefinition;
   try {
     packageDefinition = protoLoader.loadSync(protoPath, {

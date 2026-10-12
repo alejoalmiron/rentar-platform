@@ -1,40 +1,112 @@
+import grpc from '@grpc/grpc-js';
 import { callGrpc } from './clientFactory.js';
-import { normalizeDates, toTimestamp } from './timestamps.js';
+import { normalizeDates } from './timestamps.js';
 
 const unwrap = (response, key) => normalizeDates(response?.[key] ?? response);
 
+function invalidArgument(message) {
+  const error = new Error(message);
+  error.code = grpc.status.INVALID_ARGUMENT;
+  return error;
+}
+
+function toVehicleId(id) {
+  const value = Number(id);
+  if (!Number.isInteger(value) || value < 1 || value > 2147483647) {
+    throw invalidArgument('El id del vehículo debe ser un entero positivo');
+  }
+  return value;
+}
+
+function validateRequiredFields(vehicle) {
+  for (const field of ['marca', 'modelo', 'patente']) {
+    if (typeof vehicle[field] !== 'string' || vehicle[field].trim() === '') {
+      throw invalidArgument(`El campo ${field} es obligatorio`);
+    }
+  }
+}
+
+function filterVehicles(vehicles, filters) {
+  const supportedFilters = new Set(['marca', 'modelo', 'patente', 'operativo', 'activo']);
+  const entries = Object.entries(filters).filter(([, value]) => value !== undefined && value !== '');
+  const unsupportedFilter = entries.find(([key]) => !supportedFilters.has(key));
+  if (unsupportedFilter) {
+    const error = new Error(`El filtro ${unsupportedFilter[0]} no está soportado por el servicio de Vehículos`);
+    error.code = grpc.status.UNIMPLEMENTED;
+    throw error;
+  }
+
+  return vehicles.filter((vehicle) => entries.every(([key, value]) => (
+    String(vehicle[key]).toLowerCase() === String(value).toLowerCase()
+  )));
+}
+
 export const vehicleClient = {
   async list(filters = {}) {
-    const response = await callGrpc('vehicle', 'ListVehicles', filters);
-    return normalizeDates(response.vehicles || []);
+    const response = await callGrpc('vehicle', 'GetVehicles', {});
+    return filterVehicles(normalizeDates(response.vehicles || []), filters);
   },
   async getById(id) {
-    return unwrap(await callGrpc('vehicle', 'GetVehicle', { id: String(id) }), 'vehicle');
+    return unwrap(await callGrpc('vehicle', 'GetVehicleById', { id: toVehicleId(id) }), 'vehicle');
   },
   async getByPlate(patente) {
-    return unwrap(await callGrpc('vehicle', 'GetVehicleByPlate', { patente }), 'vehicle');
+    const vehicles = await this.list();
+    const vehicle = vehicles.find((item) => item.patente === patente);
+    if (!vehicle) {
+      const error = new Error('Vehículo no encontrado');
+      error.code = grpc.status.NOT_FOUND;
+      throw error;
+    }
+    return vehicle;
   },
   async create(vehiculo) {
-    return unwrap(await callGrpc('vehicle', 'CreateVehicle', { vehiculo }), 'vehicle');
+    validateRequiredFields(vehiculo);
+    const response = await callGrpc('vehicle', 'CreateVehicle', {
+      marca: vehiculo.marca.trim(),
+      modelo: vehiculo.modelo.trim(),
+      patente: vehiculo.patente.trim(),
+    });
+    return unwrap(response, 'vehicle');
   },
   async update(id, vehiculo) {
-    return unwrap(await callGrpc('vehicle', 'UpdateVehicle', { id: String(id), vehiculo }), 'vehicle');
+    const vehicleId = toVehicleId(id);
+    const current = await this.getById(vehicleId);
+    const updated = {
+      marca: vehiculo.marca ?? current.marca,
+      modelo: vehiculo.modelo ?? current.modelo,
+      patente: vehiculo.patente ?? current.patente,
+      operativo: vehiculo.operativo ?? current.operativo,
+    };
+    validateRequiredFields(updated);
+    if (typeof updated.operativo !== 'boolean') {
+      throw invalidArgument('El campo operativo debe ser booleano');
+    }
+
+    const response = await callGrpc('vehicle', 'UpdateVehicle', {
+      id: vehicleId,
+      marca: updated.marca.trim(),
+      modelo: updated.modelo.trim(),
+      patente: updated.patente.trim(),
+      operativo: updated.operativo,
+    });
+    return unwrap(response, 'vehicle');
   },
   async deactivate(id) {
-    return unwrap(await callGrpc('vehicle', 'DeactivateVehicle', { id: String(id) }), 'vehicle');
+    const vehicleId = toVehicleId(id);
+    const vehicle = await this.getById(vehicleId);
+    await callGrpc('vehicle', 'DeleteVehicle', { id: vehicleId });
+    return { ...vehicle, activo: false };
   },
-  checkOperational({ id, patente }) {
-    return callGrpc('vehicle', 'CheckVehicleOperational', {
-      ...(id !== undefined && { vehicleId: String(id) }),
-      ...(patente && { patente }),
-    });
-  },
-  checkAvailability({ id, patente, fechaInicio, fechaFin }) {
-    return callGrpc('vehicle', 'CheckVehicleAvailability', {
-      ...(id !== undefined && { vehicleId: String(id) }),
-      ...(patente && { patente }),
-      fechaInicio: toTimestamp(fechaInicio),
-      fechaFin: toTimestamp(fechaFin),
-    });
+  async checkOperational({ id, patente }) {
+    const vehicle = id !== undefined
+      ? await this.getById(id)
+      : await this.getByPlate(patente);
+    const response = await callGrpc('vehicle', 'CheckOperative', { id: toVehicleId(vehicle.id) });
+    return {
+      exists: true,
+      active: vehicle.activo,
+      operational: response.operativo,
+      operativo: response.operativo,
+    };
   },
 };

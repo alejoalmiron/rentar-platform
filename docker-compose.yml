@@ -26,5 +26,39 @@ services:
     depends_on:
       - db
 
+  vehicle-db:
+    image: mysql:8.0
+    container_name: mysql_vehicle_db_integrated
+    restart: always
+    environment:
+      MYSQL_DATABASE: vehicle_db
+      MYSQL_ROOT_PASSWORD: root
+    ports:
+      - "3308:3306"
+    volumes:
+      - mysql_vehicle_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uroot -p\"$$MYSQL_ROOT_PASSWORD\" --silent"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 10s
+
+  vehicle-service:
+    build:
+      context: ./services/vehicle-service
+      dockerfile: Dockerfile
+    container_name: vehicle_service_container
+    restart: always
+    ports:
+      - "50051:50051"
+    environment:
+      - DATABASE_URL=mysql+pymysql://root:root@vehicle-db:3306/vehicle_db
+      - PYTHONUNBUFFERED=1
+    depends_on:
+      vehicle-db:
+        condition: service_healthy
+
 volumes:
   mysql_data:
+  mysql_vehicle_data:

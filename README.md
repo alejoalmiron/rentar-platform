@@ -78,16 +78,30 @@ Cada servicio debe ejecutar sus propias migraciones sobre su respectiva base de 
 
 ### 5. Iniciar el sistema
 
-El proyecto cuenta con `docker-compose.yml` para levantar el Gateway, los tres servicios y las bases de datos de forma integrada.
+`docker-compose.yml` levanta las bases y servicios de Alquileres y Vehículos. Cada microservicio usa su propio contenedor MySQL: Alquileres publica MySQL en `localhost:3307` y Vehículos en `localhost:3308`. Para iniciar esos servicios:
 
-```bash
-docker compose up --build
+```powershell
+docker compose up --build -d db rental-service vehicle-db vehicle-service
 ```
 
-Para detener los servicios:
+Vehículos espera a que su base de datos esté lista y expone gRPC en `localhost:50051`. Para detener los contenedores:
 
 ```bash
 docker compose down
+```
+
+El API Gateway se ejecuta desde otra terminal en la raíz del proyecto. Configurá en `.env` `VEHICLE_GRPC_ADDRESS=localhost:50051` y luego iniciá:
+
+```powershell
+npm.cmd run dev
+```
+
+El Gateway queda disponible en `http://localhost:5000` y reenvía las operaciones REST de vehículos a su servicio gRPC. El contrato que utiliza el Gateway es el de `services/vehicle-service/proto/vehicle/v1/vehicle.proto`; las propiedades disponibles son `id`, `marca`, `modelo`, `patente`, `operativo` y `activo`.
+
+Para ejecutar el servicio de Vehículos directamente en Windows, primero configurá `DATABASE_URL` en `services/vehicle-service/.env` para apuntar a una instancia de MySQL disponible y luego, desde `services/vehicle-service`, ejecutá:
+
+```powershell
+.\venv\Scripts\python.exe -m app.server
 ```
 
 ---
