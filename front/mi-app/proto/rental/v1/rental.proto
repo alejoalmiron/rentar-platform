@@ -1,0 +1,72 @@
+syntax = "proto3";
+
+package rentar.rental.v1;
+
+service RentalService {
+  rpc CheckReservationAvailability (CheckReservationAvailabilityRequest) returns (CheckReservationAvailabilityResponse);
+  rpc CreateReservation (CreateReservationRequest) returns (ReservationResponse);
+  rpc GetReservation (GetReservationRequest) returns (ReservationResponse);
+  rpc ListReservas (ListReservasRequest) returns (ListReservasResponse);
+  rpc CancelReservation (CancelReservationRequest) returns (CancelReservationResponse);
+  rpc GetRentalHistory (GetRentalHistoryRequest) returns (GetRentalHistoryResponse);
+}
+
+message ReservationMessage {
+  string id = 1;
+  string cliente_dni = 2;
+  string vehiculo_patente = 3;
+  string fecha_inicio = 4;
+  string fecha_fin = 5;
+  string estado = 6;
+  double monto_total = 7;
+}
+
+message CheckReservationAvailabilityRequest {
+  string vehiculo_patente = 1;
+  string fecha_inicio = 2;
+  string fecha_fin = 3;
+}
+
+message CheckReservationAvailabilityResponse {
+  bool available = 1;
+}
+
+message CreateReservationRequest {
+  string cliente_dni = 1;
+  string vehiculo_patente = 2;
+  string fecha_inicio = 3;
+  string fecha_fin = 4;
+}
+
+message ReservationResponse {
+  ReservationMessage reserva = 1;
+}
+
+message GetReservationRequest {
+  string id = 1;
+}
+
+message ListReservasRequest {
+  string cliente_dni = 1;
+}
+
+message ListReservasResponse {
+  repeated ReservationMessage reservas = 1;
+}
+
+message CancelReservationRequest {
+  string id = 1;
+}
+
+message CancelReservationResponse {
+  ReservationMessage reserva = 1;
+}
+
+message GetRentalHistoryRequest {
+  string estado = 1;
+  string patente = 2;
+}
+
+message GetRentalHistoryResponse {
+  repeated ReservationMessage historial = 1;
+}
