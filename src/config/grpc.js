@@ -10,8 +10,9 @@ export const grpcConfig = {
   services: {
     vehicle: {
       address: process.env.VEHICLE_GRPC_ADDRESS || 'localhost:50051',
+      protoRoot: path.resolve(projectRoot, 'services/vehicle-service/proto'),
       file: 'vehicle/v1/vehicle.proto',
-      packageName: 'rentar.vehicle.v1',
+      packageName: 'vehicle.v1',
       serviceName: 'VehicleService',
     },
     customer: {

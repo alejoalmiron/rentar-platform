@@ -1,0 +1,48 @@
+syntax = "proto3";
+package vehicle.v1;
+
+service VehicleService {
+  rpc GetVehicles (Empty) returns (VehicleList);
+  rpc GetVehicleById (VehicleIdRequest) returns (Vehicle);
+  rpc CreateVehicle (CreateVehicleRequest) returns (Vehicle);
+  rpc UpdateVehicle (UpdateVehicleRequest) returns (Vehicle);
+  rpc DeleteVehicle (VehicleIdRequest) returns (Empty);
+  rpc CheckOperative (VehicleIdRequest) returns (OperativeResponse);
+}
+
+message Empty {}
+
+message VehicleIdRequest {
+  int32 id = 1;
+}
+
+message Vehicle {
+  int32 id = 1;
+  string marca = 2;
+  string modelo = 3;
+  string patente = 4;
+  bool operativo = 5;
+  bool activo = 6;
+}
+
+message VehicleList {
+  repeated Vehicle vehicles = 1;
+}
+
+message CreateVehicleRequest {
+  string marca = 1;
+  string modelo = 2;
+  string patente = 3;
+}
+
+message UpdateVehicleRequest {
+  int32 id = 1;
+  string marca = 2;
+  string modelo = 3;
+  string patente = 4;
+  bool operativo = 5;
+}
+
+message OperativeResponse {
+  bool operativo = 1;
+}

@@ -1,2 +1,6 @@
 node_modules/
 .env
+.postman/
+postman/
+__pycache__/
+*.py[cod]

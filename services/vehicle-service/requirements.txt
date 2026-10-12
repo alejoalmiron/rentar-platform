@@ -1,0 +1,7 @@
+grpcio
+grpcio-tools
+SQLAlchemy
+pymysql==1.1.0
+cryptography
+python-dotenv==1.0.0
+alembic==1.12.1
