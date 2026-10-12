@@ -11,7 +11,7 @@ import time
 import grpc
 from sqlalchemy.exc import OperationalError
 from app.db import engine, Base
-from app.repository import RentalModel  # <--- ¡ESTO ES LO QUE FALTABA IMPORTAR!
+from app.repository import RentalModel  
 from app.generated.rental.v1 import rental_pb2_grpc
 from app.service import RentalServiceServicer
 
