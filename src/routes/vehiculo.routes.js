@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import { requireAuth, requireRole } from '../auth/middleware.js';
 import { 
   getVehiculos, 
   getVehiculoById, 
@@ -9,10 +10,11 @@ import {
 
 const router = Router();
 
+router.use(requireAuth);
 router.get('/', getVehiculos);
 router.get('/:id', getVehiculoById);
-router.post('/', createVehiculo);
-router.put('/:id', updateVehiculo);
-router.delete('/:id', deleteVehiculo);
+router.post('/', requireRole('ADMIN'), createVehiculo);
+router.put('/:id', requireRole('ADMIN'), updateVehiculo);
+router.delete('/:id', requireRole('ADMIN'), deleteVehiculo);
 
 export default router;

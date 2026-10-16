@@ -27,6 +27,7 @@ message CrearRentaRequest {
   string fechaInicio = 3;
   string fechaFin = 4;
   double precioTotal = 5;
+  double precioDiario = 6;
 }
 
 message ObtenerRentaRequest {

@@ -1,465 +1,111 @@
-# 🚗 Rentar - Sistema de Alquiler de Vehículos (API Gateway, REST, GraphQL & gRPC)
+# Rentar: alquiler de vehículos
 
-Proyecto desarrollado para el **Hito 2** de la materia **Desarrollo de Software en Sistemas Distribuidos (UNLa)**. A partir del sistema desarrollado en el Hito 1, se incorpora una arquitectura basada en servicios independientes y comunicación mediante **gRPC**, manteniendo las funcionalidades desarrolladas anteriormente.
+Proyecto de la Universidad Nacional de Lanús para **Desarrollo de Software en Sistemas Distribuidos**, Hito 2 (RPC/gRPC). Se conserva la aplicación React del Hito 1 y se la conecta a un API Gateway Node.js. El Gateway entrega REST y GraphQL al frontend y llama por gRPC a tres servicios Python. Cada servicio es propietario de una base MySQL propia; el Gateway no accede a ellas.
 
-La interfaz web desarrollada en el Hito 1 se mantiene como medio de acceso al sistema. El **API Gateway**, desarrollado en Node.js, funciona como punto de entrada y se comunica mediante gRPC con los servicios internos de Vehículos, Clientes y Alquileres.
+## Arquitectura implementada
 
----
+- `front/mi-app`: interfaz React 19 y Vite 8.
+- `src`: API Gateway Express 5 / Apollo Server 5, clientes gRPC, JWT, autorización y orquestación de reservas.
+- `services/vehicle-service`: Python 3.10, gRPC, SQLAlchemy y MySQL `vehicle_db`.
+- `services/customer-service`: Python 3.10, gRPC, SQLAlchemy, bcrypt y MySQL `customer_db`; autentica cuentas y administra sus hashes.
+- `services/rental-service`: Python 3.10, gRPC, SQLAlchemy y MySQL `rental_db`; aplica disponibilidad temporal, calcula importes y gestiona el ciclo de vida de reservas.
+- Contratos canónicos: `services/<servicio>/proto/<dominio>/v1/*.proto`. Los contenedores generan sus stubs Python desde estos archivos al construirse.
+- `prisma/schema.prisma` conserva el modelo del Hito 1 como referencia; el Gateway y los servicios de Hito 2 no lo usan para acceder a datos.
 
-## 🛠️ Requisitos Previos
+La interfaz web se comunica exclusivamente con el Gateway. El Gateway orquesta las validaciones de cliente, vehículo y período; Rental Service vuelve a comprobar solapamientos al guardar para protegerse de solicitudes concurrentes.
 
-Antes de comenzar, asegurate de tener instalado en tu equipo:
+## Requisitos
 
-* **Node.js** (Versión LTS v18 o superior)
-* **Python** (v3.10 o superior)
-* **MySQL Server** (v8.0+) o gestor local como MySQL Workbench / XAMPP
-* **Git** y **Visual Studio Code**
-* **Docker** y **Docker Compose**
+- Docker Engine y Docker Compose.
+- Para ejecutar Gateway/frontend fuera de Docker: Node.js 22 o superior.
+- Para ejecutar servicios Python fuera de Docker: Python 3.10 o superior y MySQL 8.
 
----
+## Inicio completo con Docker
 
-## 🚀 Guía de Instalación y Configuración Local
-
-El proyecto está compuesto por el API Gateway en Node.js, tres servicios internos en Python y el frontend existente en React.
-
-### 1. Clonar el repositorio e instalar dependencias
-
-* git clone <LINK_DEL_REPOSITORIO>
-* cd rentar-backend
-* npm install
-
-Para los servicios Python, instalar las dependencias correspondientes dentro de cada servicio:
-
-* cd services/vehicle-service
-* pip install -r requirements.txt
-
-El mismo procedimiento se utiliza para `customer-service` y `rental-service`.
-
-### 2. Configurar las variables de entorno
-
-El API Gateway utiliza variables de entorno para conocer las direcciones de los servicios gRPC.
-
-Ejemplo:
-
-* PORT=5000
-* VEHICLE_GRPC_URL=localhost:50051
-* CUSTOMER_GRPC_URL=localhost:50052
-* RENTAL_GRPC_URL=localhost:50053
-
-Cada servicio Python tendrá su propio archivo `.env` con la configuración necesaria para conectarse a su base de datos.
-
-### 3. Crear las bases de datos en MySQL
-
-Cada servicio cuenta con una base de datos independiente:
-
-* `vehicle_db`
-* `customer_db`
-* `rental_db`
-
-Por ejemplo:
-
-```sql
-CREATE DATABASE vehicle_db;
-CREATE DATABASE customer_db;
-CREATE DATABASE rental_db;
-```
-
-Cada servicio es responsable de sus propias tablas y migraciones.
-
-### 4. Ejecutar las migraciones
-
-Las migraciones se encuentran dentro de cada servicio:
-
-* `services/vehicle-service/migrations/`
-* `services/customer-service/migrations/`
-* `services/rental-service/migrations/`
-
-Cada servicio debe ejecutar sus propias migraciones sobre su respectiva base de datos.
-
-### 5. Iniciar el sistema
-
-`docker-compose.yml` levanta las bases y servicios de Alquileres y Vehículos. Cada microservicio usa su propio contenedor MySQL: Alquileres publica MySQL en `localhost:3307` y Vehículos en `localhost:3308`. Para iniciar esos servicios:
+Desde la raíz del repositorio, cargar la plantilla local de entorno y levantar el sistema:
 
 ```powershell
-docker compose up --build -d db rental-service vehicle-db vehicle-service
+docker compose --env-file .env.example up --build -d
 ```
 
-Vehículos espera a que su base de datos esté lista y expone gRPC en `localhost:50051`. Para detener los contenedores:
+Si vas a personalizar valores, copiá `.env.example` a `.env`, editá ese archivo ignorado por Git y ejecutá `docker compose up --build -d`. No publiques `.env` ni uses las credenciales de ejemplo fuera de desarrollo.
+
+URLs y puertos:
+
+| Componente | URL/puerto local |
+| --- | --- |
+| Frontend | `http://localhost:5173` |
+| API Gateway REST | `http://localhost:5000/api` |
+| GraphQL | `http://localhost:5000/graphql` |
+| Swagger REST | `http://localhost:5000/api-docs` |
+| Vehicle Service gRPC | `localhost:50051` |
+| Customer Service gRPC | `localhost:50052` |
+| Rental Service gRPC | `localhost:50053` |
+| MySQL Customer / Vehicle / Rental | `localhost:3307` / `3308` / `3309` |
+
+Detener los contenedores con `docker compose down`. Los datos persisten en volúmenes Docker. Para borrar también esos datos de desarrollo, usar `docker compose down -v`.
+
+## Usuarios de desarrollo
+
+Customer Service crea estas cuentas al iniciar por primera vez. Las contraseñas se guardan con bcrypt; las credenciales siguientes son únicamente para desarrollo local:
+
+| Rol | Usuario | Contraseña |
+| --- | --- | --- |
+| Administrador | `admin` | `AdminRentar2026!` |
+| Cliente | `cliente` | `ClienteRentar2026!` |
+
+Se pueden cambiar mediante `SEED_ADMIN_USERNAME`, `SEED_ADMIN_PASSWORD`, `SEED_CLIENT_USERNAME`, `SEED_CLIENT_PASSWORD` y `SEED_CLIENT_DNI` antes del primer arranque. El seed no reemplaza contraseñas de cuentas que ya existen. Configurá `JWT_SECRET` en `.env` con un valor aleatorio de al menos 32 caracteres antes de un despliegue no local. El secreto por defecto de Compose es solo para desarrollo.
+
+El inicio de sesión se hace en `POST /api/auth/login`; se devuelve un JWT que el frontend envía como `Authorization: Bearer <token>`. `POST /api/auth/logout` revoca el token en la instancia actual del Gateway y el frontend elimina su copia local.
+
+Permisos aplicados en backend además de la interfaz:
+
+- `ADMIN`: alta, modificación y baja de vehículos/clientes; consulta global del historial; puede cancelar cualquier reserva.
+- `CLIENTE`: consulta vehículos/disponibilidad; crea reservas asociadas a su cuenta; ve y cancela solo sus propias reservas; accede a su historial.
+- Las operaciones REST protegidas devuelven `401` si falta un token válido y `403` si el rol no tiene permiso. GraphQL informa los mismos códigos en `errors[].extensions`.
+
+## Funcionalidades
+
+La interfaz mantiene las operaciones del Hito 1: gestión y listado de vehículos, disponibilidad por fechas, gestión/listado de clientes, alta de reserva, consulta de reservas, cancelación e historial. Los perfiles cliente y administrador ven navegación distinta; el Gateway vuelve a verificar identidad, rol y propiedad de reservas.
+
+## Pruebas
+
+Desde la raíz:
 
 ```bash
-docker compose down
+npm test
+npm --prefix front/mi-app run lint
+npm --prefix front/mi-app run build
 ```
 
-El API Gateway se ejecuta desde otra terminal en la raíz del proyecto. Configurá en `.env` `VEHICLE_GRPC_ADDRESS=localhost:50051` y luego iniciá:
+`npm test` verifica sintaxis del Gateway y ejecuta pruebas unitarias JWT. Con los contenedores arriba, las pruebas gRPC de servicios se pueden ejecutar así:
 
-```powershell
-npm.cmd run dev
+```bash
+docker compose exec vehicle-service python -m unittest discover -s /app/tests
+docker compose exec customer-service python -m pytest /app/tests/test_customer_service.py
+docker compose exec rental-service python -m pytest /app/tests/test_rental.py
 ```
 
-El Gateway queda disponible en `http://localhost:5000` y reenvía las operaciones REST de vehículos a su servicio gRPC. El contrato que utiliza el Gateway es el de `services/vehicle-service/proto/vehicle/v1/vehicle.proto`; las propiedades disponibles son `id`, `marca`, `modelo`, `patente`, `operativo` y `activo`.
+Las pruebas Python son de integración con sus servicios y bases MySQL, por lo que requieren el stack levantado. Antes de entregar, comprobar desde el navegador disponibilidad, altas/gestión de clientes y vehículos según rol, alta de reserva, consulta/cancelación propia y el historial; guardar capturas reales de cada caso.
 
-Para ejecutar el servicio de Vehículos directamente en Windows, primero configurá `DATABASE_URL` en `services/vehicle-service/.env` para apuntar a una instancia de MySQL disponible y luego, desde `services/vehicle-service`, ejecutá:
+## REST y GraphQL
 
-```powershell
-.\venv\Scripts\python.exe -m app.server
-```
+Las rutas REST del Gateway están montadas en `/api/vehiculos`, `/api/clientes`, `/api/reservas` y `/api/auth`. Las operaciones GraphQL, ejemplos, tipos, permisos, validaciones y errores están documentados en [docs/GRAPHQL.md](docs/GRAPHQL.md). El Gateway también expone SDL introspection en `/graphql`.
 
----
+## Persistencia
 
-## 📁 Arquitectura del Proyecto Backend
+- Vehicle Service escribe solamente en `vehicle_db`; aplica sus migraciones Alembic al iniciar. Los datos descriptivos opcionales ausentes en filas antiguas quedan nulos, mientras que las altas nuevas validan los campos del modelo Hito 1.
+- Customer Service escribe solamente en `customer_db`, incluidas cuentas y hashes de autenticación.
+- Rental Service escribe solamente en `rental_db`; guarda IDs de cliente y vehículo sin claves foráneas entre servicios.
+- No configures `DATABASE_URL` en el Gateway. Las variables de conexión de cada servicio se inyectan desde Compose.
 
-La estructura general del proyecto queda organizada de la siguiente manera:
+## Estructura principal
 
 ```text
-rentar-backend/
-├── src/                              # API Gateway existente (Node.js)
-│   ├── index.js
-│   ├── routes/                       # Rutas REST que usa el frontend
-│   ├── controllers/                  # Adaptados para utilizar gRPC
-│   ├── graphql/                      # Resolvers adaptados para utilizar gRPC
-│   ├── grpc/                         # Clientes gRPC
-│   │   ├── vehicle.client.js
-│   │   ├── customer.client.js
-│   │   └── rental.client.js
-│   ├── orchestrators/                # Coordinación de operaciones
-│   │   └── reserva.orchestrator.js
-│   └── config/
-│       └── grpc.js                   # Direcciones de los servicios
-│
-├── proto/                            # Contratos compartidos
-│   ├── vehicle/v1/vehicle.proto
-│   ├── customer/v1/customer.proto
-│   └── rental/v1/rental.proto
-│
-├── services/                         # Microservicios Python
-│   ├── vehicle-service/
-│   ├── customer-service/
-│   └── rental-service/
-│
-├── front/
-│   └── mi-app/                       # Frontend React existente
-│
-├── docker-compose.yml
-├── .env.example
-└── README.md
+src/                         API Gateway Node.js
+services/vehicle-service/    Servicio gRPC Python + vehicle_db
+services/customer-service/  Servicio gRPC Python + customer_db + autenticación
+services/rental-service/    Servicio gRPC Python + rental_db
+front/mi-app/                Interfaz React/Vite
+prisma/schema.prisma         Referencia del modelo Hito 1
 ```
-
-Cada servicio Python tendrá una estructura similar:
-
-```text
-services/vehicle-service/
-├── app/
-│   ├── server.py                     # Inicia el servidor gRPC
-│   ├── service.py                    # Implementa operaciones del dominio
-│   ├── repository.py                 # Acceso a su propia base MySQL
-│   ├── db.py                         # Conexión y sesión de base de datos
-│   └── generated/                    # Código generado desde vehicle.proto
-├── migrations/                       # Migraciones Alembic
-├── tests/
-├── requirements.txt
-├── Dockerfile
-└── .env.example
-```
-
-Para `customer-service` y `rental-service` se replica la misma estructura, utilizando sus respectivos contratos `.proto`.
-
----
-
-## 👥 Distribución y Módulos de Trabajo
-
-### 📌 Integrante 1 — API Gateway en Node.js
-
-**Modificar y crear dentro de `src`:**
-
-* Modificar `vehiculo.controller.js`, `cliente.controller.js` y `reserva.controller.js` para que dejen de consultar Prisma y deleguen las operaciones al cliente gRPC correspondiente.
-* Crear `src/grpc/vehicle.client.js`.
-* Crear `src/grpc/customer.client.js`.
-* Crear `src/grpc/rental.client.js`.
-* Crear `src/config/grpc.js` para leer de variables de entorno las direcciones de los servicios.
-* Crear `src/orchestrators/reserva.orchestrator.js` para coordinar las validaciones y el alta de reserva.
-* Modificar `resolvers.js` para llamar a los servicios por gRPC, no directamente a Prisma.
-* Mantener en `index.js` el montaje de REST/GraphQL como entrada para el frontend.
-
-**Operaciones que debe coordinar al crear una reserva:**
-
-* Consultar en paralelo si el cliente está activo.
-* Consultar si el vehículo está operativo.
-* Consultar si las fechas están libres.
-* Si todas las validaciones son correctas, pedir la creación de la reserva al Rental Service.
-
-**No debe hacer:**
-
-* Acceder directamente a MySQL.
-* Implementar reglas internas de clientes, vehículos o alquileres.
-
----
-
-### 📌 Integrante 2 — Vehicle Service en Python
-
-**Crear dentro de `services/vehicle-service/`:**
-
-* `app/server.py`
-* `app/service.py`
-* `app/repository.py`
-* `app/db.py`
-* `requirements.txt`
-* `Dockerfile`
-* `.env.example`
-* `migrations/`
-* `tests/`
-* `proto/vehicle/v1/vehicle.proto`
-
-**El servicio debe incluir operaciones para:**
-
-* Listar vehículos y consultar un vehículo por ID.
-* Crear vehículos.
-* Modificar vehículos.
-* Dar de baja vehículos, para conservar la gestión del Hito 1.
-* Consultar si un vehículo está operativo.
-* Validar los datos propios del vehículo.
-
-**Base de datos:**
-
-El servicio utiliza una base MySQL propia:
-
-```text
-vehicle_db
-```
-
-El Vehicle Service administra sus propias tablas y migraciones.
-
----
-
-### 📌 Integrante 3 — Customer Service en Python
-
-**Crear dentro de `services/customer-service/`:**
-
-* `app/server.py`
-* `app/service.py`
-* `app/repository.py`
-* `app/db.py`
-* `requirements.txt`
-* `Dockerfile`
-* `.env.example`
-* `migrations/`
-* `tests/`
-* `proto/customer/v1/customer.proto`
-
-**El servicio debe incluir operaciones para:**
-
-* Listar clientes y consultar un cliente por ID.
-* Crear clientes.
-* Modificar clientes.
-* Dar de baja clientes, para conservar la gestión del Hito 1.
-* Verificar que un cliente exista y esté activo.
-* Validar datos propios del cliente, como documento/DNI único y campos obligatorios.
-
-**Base de datos:**
-
-El servicio utiliza una base MySQL propia:
-
-```text
-customer_db
-```
-
-El Customer Service administra sus propias tablas y migraciones.
-
-El Gateway debe poder invocar la validación de cliente activo antes de solicitar una reserva.
-
----
-
-### 📌 Integrante 4 — Rental Service en Python
-
-**Crear dentro de `services/rental-service/`:**
-
-* `app/server.py`
-* `app/service.py`
-* `app/repository.py`
-* `app/db.py`
-* `requirements.txt`
-* `Dockerfile`
-* `.env.example`
-* `migrations/`
-* `tests/`
-* `proto/rental/v1/rental.proto`
-
-**El servicio debe incluir operaciones para:**
-
-* Crear reservas.
-* Consultar reservas.
-* Listar reservas por cliente.
-* Cancelar una reserva.
-* Consultar el historial de alquileres.
-* Verificar si existen reservas que se superponen con un vehículo y un período.
-
-**Base de datos:**
-
-El servicio utiliza una base MySQL propia:
-
-```text
-rental_db
-```
-
-El Rental Service administra sus propias tablas y migraciones.
-
-El Rental Service debe volver a verificar los solapamientos al guardar la reserva, aunque el Gateway ya haya consultado la disponibilidad.
-
----
-
-### 📌 Integrante 5 — Frontend, Integración y Documentación
-
-**Modificar y crear:**
-
-* Revisar `ConectarAlBackend.js` para que todas las llamadas utilicen el API Gateway.
-* Revisar las páginas de `pages` y mantener los flujos existentes:
-
-  * Vehículos.
-  * Clientes.
-  * Disponibilidad.
-  * Alta de reservas.
-  * Consulta de reservas.
-  * Cancelación.
-  * Historial de alquileres.
-* Crear `docker-compose.yml` en la raíz para levantar el Gateway, los tres servicios y MySQL.
-* Actualizar `README.md` con arquitectura, requisitos, variables y pasos para ejecutar el sistema.
-* Preparar el documento de entrega con diagramas, integrantes, tareas, pruebas y capturas.
-
-El integrante 5 coordina las pruebas integrales, pero cada responsable debe escribir y ejecutar las pruebas de su propio componente.
-
----
-
-## 🔗 Contratos gRPC
-
-Los contratos gRPC se encuentran únicamente dentro de `proto/`:
-
-```text
-proto/
-├── vehicle/v1/vehicle.proto
-├── customer/v1/customer.proto
-└── rental/v1/rental.proto
-```
-
-Cada contrato define los servicios, métodos, mensajes de entrada y respuestas correspondientes.
-
-Los servicios utilizan estos contratos para implementar la comunicación entre el API Gateway y los servicios internos.
-
-El código necesario para ejecutar los contratos se genera dentro de cada servicio, en `app/generated/`.
-
----
-
-## ⚡ Flujo de Alta de Reserva
-
-La creación de una reserva requiere la participación del API Gateway, Customer Service, Vehicle Service y Rental Service.
-
-```text
-Frontend
-   │
-   │ Solicitud de reserva
-   ▼
-API Gateway
-   │
-   ├──────────────► Customer Service
-   │                    │
-   │                    └── Cliente activo
-   │
-   └──────────────► Vehicle Service
-                        │
-                        ├── Vehículo operativo
-                        └── Fechas disponibles
-
-              │
-              │ Datos validados
-              ▼
-         API Gateway
-              │
-              │ Crear reserva
-              ▼
-        Rental Service
-              │
-              ▼
-        Reserva guardada
-```
-
-El Gateway realiza las consultas al Customer Service y al Vehicle Service en paralelo.
-
-Si alguna validación falla, la solicitud es rechazada.
-
-Si todas las validaciones son correctas, el Gateway solicita al Rental Service la creación de la reserva.
-
-El Rental Service vuelve a verificar los solapamientos antes de guardar la reserva.
-
----
-
-## ⚛️ Guía para el Integrante 5 — Frontend (React + Vite)
-
-El Frontend desarrollado en el Hito 1 se mantiene y continúa siendo el medio de acceso al sistema.
-
-La diferencia es que ahora todas las solicitudes deben pasar por el API Gateway.
-
-### 1. Conexión con el Backend
-
-* Base URL de la API REST: `http://localhost:5000/api`
-* Endpoint de GraphQL: `http://localhost:5000/graphql`
-
-El frontend no debe comunicarse directamente con Vehicle Service, Customer Service ni Rental Service.
-
-### 2. Tareas a desarrollar en React
-
-* Mantener las vistas existentes de vehículos y clientes.
-* Mantener el formulario de alta de reservas.
-* Mantener la consulta de disponibilidad.
-* Mantener la consulta de reservas.
-* Mantener la cancelación de reservas.
-* Mantener el historial de alquileres.
-* Revisar `ConectarAlBackend.js` para garantizar que todas las llamadas utilicen el Gateway.
-
----
-
-## 🗄️ Bases de Datos
-
-A diferencia del Hito 1, las bases de datos se separan por servicio:
-
-| Servicio         | Base de datos |
-| ---------------- | ------------- |
-| Vehicle Service  | `vehicle_db`  |
-| Customer Service | `customer_db` |
-| Rental Service   | `rental_db`   |
-
-Cada servicio accede únicamente a su propia base de datos.
-
-El API Gateway no accede directamente a MySQL.
-
-El esquema Prisma utilizado en el Hito 1 puede conservarse como referencia durante la migración, pero no debe continuar funcionando como una base de datos compartida entre los servicios.
-
----
-
-## 📋 Criterios Comunes
-
-* **Lenguajes:** API Gateway en Node.js; los tres servicios internos en Python.
-* **Bases de datos:** MySQL con `vehicle_db`, `customer_db` y `rental_db`.
-* **Acceso a datos:** cada servicio accede únicamente a su propia base de datos.
-* **Contratos:** los archivos `.proto` se guardan en `proto/`.
-* **Código generado:** cada servicio genera o utiliza los archivos necesarios dentro de `app/generated/`.
-* **Disponibilidad:** Vehicle Service informa si el vehículo está operativo y Rental Service informa si las fechas están libres.
-* **Coordinación:** el Gateway combina las respuestas necesarias para completar una operación.
-* **Fechas e identificadores:** conservar el tipo de ID utilizado actualmente y utilizar fechas en UTC en los contratos.
-* **Estados:** revisar los enums actuales de `schema.prisma` antes de definirlos en los `.proto`, evitando crear estados incompatibles.
-* **Pruebas finales:** demostrar desde la interfaz que las siete funciones del Hito 1 continúan funcionando a través del API Gateway.
-
----
-
-## 🧪 Pruebas
-
-Se deben comprobar las funcionalidades desarrolladas en el Hito 1 utilizando la nueva arquitectura:
-
-* Gestión de vehículos.
-* Consulta de disponibilidad.
-* Gestión de clientes.
-* Alta de reservas.
-* Consulta de reservas.
-* Cancelación de reservas.
-* Historial de alquileres.
-
-Además, se debe verificar la comunicación mediante gRPC entre el API Gateway y cada uno de los servicios internos.
-
-Las pruebas realizadas y sus respectivas capturas forman parte de la entrega del trabajo práctico.

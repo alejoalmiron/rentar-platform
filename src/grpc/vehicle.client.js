@@ -27,7 +27,9 @@ function validateRequiredFields(vehicle) {
 }
 
 function filterVehicles(vehicles, filters) {
-  const supportedFilters = new Set(['marca', 'modelo', 'patente', 'operativo', 'activo']);
+  const supportedFilters = new Set([
+    'marca', 'modelo', 'patente', 'operativo', 'activo', 'tipo', 'precioMin', 'precioMax',
+  ]);
   const entries = Object.entries(filters).filter(([, value]) => value !== undefined && value !== '');
   const unsupportedFilter = entries.find(([key]) => !supportedFilters.has(key));
   if (unsupportedFilter) {
@@ -36,9 +38,11 @@ function filterVehicles(vehicles, filters) {
     throw error;
   }
 
-  return vehicles.filter((vehicle) => entries.every(([key, value]) => (
-    String(vehicle[key]).toLowerCase() === String(value).toLowerCase()
-  )));
+  return vehicles.filter((vehicle) => entries.every(([key, value]) => {
+    if (key === 'precioMin') return vehicle.precioDiario >= Number(value);
+    if (key === 'precioMax') return vehicle.precioDiario <= Number(value);
+    return String(vehicle[key]).toLowerCase() === String(value).toLowerCase();
+  }));
 }
 
 export const vehicleClient = {
@@ -65,6 +69,11 @@ export const vehicleClient = {
       marca: vehiculo.marca.trim(),
       modelo: vehiculo.modelo.trim(),
       patente: vehiculo.patente.trim(),
+      anio: Number(vehiculo.anio),
+      color: vehiculo.color || '',
+      tipo: vehiculo.tipo,
+      precioDiario: Number(vehiculo.precioDiario),
+      estado: vehiculo.estado || 'DISPONIBLE',
     });
     return unwrap(response, 'vehicle');
   },
@@ -76,6 +85,11 @@ export const vehicleClient = {
       modelo: vehiculo.modelo ?? current.modelo,
       patente: vehiculo.patente ?? current.patente,
       operativo: vehiculo.operativo ?? current.operativo,
+      anio: vehiculo.anio ?? current.anio,
+      color: vehiculo.color ?? current.color,
+      tipo: vehiculo.tipo ?? current.tipo,
+      precioDiario: vehiculo.precioDiario ?? current.precioDiario,
+      estado: vehiculo.estado ?? current.estado,
     };
     validateRequiredFields(updated);
     if (typeof updated.operativo !== 'boolean') {
@@ -88,6 +102,11 @@ export const vehicleClient = {
       modelo: updated.modelo.trim(),
       patente: updated.patente.trim(),
       operativo: updated.operativo,
+      anio: updated.anio,
+      color: updated.color || '',
+      tipo: updated.tipo,
+      precioDiario: updated.precioDiario,
+      estado: updated.estado,
     });
     return unwrap(response, 'vehicle');
   },

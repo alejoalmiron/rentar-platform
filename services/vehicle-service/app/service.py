@@ -6,6 +6,42 @@ from .db import SessionLocal
 from .generated import vehicle_pb2, vehicle_pb2_grpc
 
 class VehicleServiceServicer(vehicle_pb2_grpc.VehicleServiceServicer):
+
+    def _to_proto(self, vehicle):
+        return vehicle_pb2.Vehicle(
+            id=vehicle.id,
+            marca=vehicle.marca,
+            modelo=vehicle.modelo,
+            patente=vehicle.patente,
+            operativo=vehicle.operativo,
+            activo=vehicle.activo,
+            anio=vehicle.anio or 0,
+            color=vehicle.color or "",
+            tipo=vehicle.tipo or "",
+            precio_diario=vehicle.precio_diario or 0,
+            estado=vehicle.estado,
+        )
+
+    def _vehicle_data(self, request):
+        data = {
+            "marca": request.marca.strip(),
+            "modelo": request.modelo.strip(),
+            "patente": request.patente.strip().upper(),
+            "anio": request.anio,
+            "color": request.color.strip() or None,
+            "tipo": request.tipo,
+            "precio_diario": request.precio_diario,
+            "estado": request.estado or "DISPONIBLE",
+        }
+        if not data["marca"] or not data["modelo"] or not data["patente"]:
+            return None
+        if data["anio"] < 1886 or data["precio_diario"] < 0:
+            return None
+        if data["tipo"] not in {"SEDAN", "SUV", "PICKUP", "COUPE", "HATCHBACK"}:
+            return None
+        if data["estado"] not in {"DISPONIBLE", "RESERVADO", "EN_ALQUILER"}:
+            return None
+        return data
     
     def GetVehicles(self, request, context):
         db = SessionLocal()
@@ -14,10 +50,7 @@ class VehicleServiceServicer(vehicle_pb2_grpc.VehicleServiceServicer):
         finally:
             db.close()
         return vehicle_pb2.VehicleList(
-            vehicles=[vehicle_pb2.Vehicle(
-                id=v.id, marca=v.marca, modelo=v.modelo,
-                patente=v.patente, operativo=v.operativo, activo=v.activo
-            ) for v in vehicles]
+            vehicles=[self._to_proto(vehicle) for vehicle in vehicles]
         )
 
     def GetVehicleById(self, request, context):
@@ -28,29 +61,30 @@ class VehicleServiceServicer(vehicle_pb2_grpc.VehicleServiceServicer):
             db.close()
         if not v:
             context.abort(grpc.StatusCode.NOT_FOUND, "Vehículo no encontrado")
-        return vehicle_pb2.Vehicle(
-            id=v.id, marca=v.marca, modelo=v.modelo,
-            patente=v.patente, operativo=v.operativo, activo=v.activo
-        )
+        return self._to_proto(v)
 
     def CreateVehicle(self, request, context):
+        data = self._vehicle_data(request)
+        if data is None:
+            context.abort(grpc.StatusCode.INVALID_ARGUMENT, "Los datos del vehículo son inválidos")
         db = SessionLocal()
         try:
-            v = repository.create(db, request.marca, request.modelo, request.patente)
+            v = repository.create(db, data)
         except IntegrityError:
             db.rollback()
             context.abort(grpc.StatusCode.ALREADY_EXISTS, "La patente ya está registrada")
         finally:
             db.close()
-        return vehicle_pb2.Vehicle(
-            id=v.id, marca=v.marca, modelo=v.modelo,
-            patente=v.patente, operativo=v.operativo, activo=v.activo
-        )
+        return self._to_proto(v)
 
     def UpdateVehicle(self, request, context):
+        data = self._vehicle_data(request)
+        if data is None:
+            context.abort(grpc.StatusCode.INVALID_ARGUMENT, "Los datos del vehículo son inválidos")
+        data["operativo"] = request.operativo
         db = SessionLocal()
         try:
-            v = repository.update(db, request.id, request.marca, request.modelo, request.patente, request.operativo)
+            v = repository.update(db, request.id, data)
         except IntegrityError:
             db.rollback()
             context.abort(grpc.StatusCode.ALREADY_EXISTS, "La patente ya está registrada")
@@ -58,10 +92,7 @@ class VehicleServiceServicer(vehicle_pb2_grpc.VehicleServiceServicer):
             db.close()
         if not v:
             context.abort(grpc.StatusCode.NOT_FOUND, "Vehículo no encontrado")
-        return vehicle_pb2.Vehicle(
-            id=v.id, marca=v.marca, modelo=v.modelo,
-            patente=v.patente, operativo=v.operativo, activo=v.activo
-        )
+        return self._to_proto(v)
 
     def DeleteVehicle(self, request, context):
         db = SessionLocal()

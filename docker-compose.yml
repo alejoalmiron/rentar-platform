@@ -1,64 +1,121 @@
 services:
-  db:
-    image: mysql:8.0
-    container_name: mysql_rental_db
-    restart: always
-    environment:
-      MYSQL_DATABASE: rental_db
-      MYSQL_ROOT_PASSWORD: root
-    ports:
-      - "3307:3306"
-    volumes:
-      - mysql_data:/var/lib/mysql
-
-  rental-service:
-    build:
-      context: ./services/rental-service
-      dockerfile: Dockerfile
-    container_name: rental_service_container
-    restart: always
-    ports:
-      - "50053:50053"
-    environment:
-      - DATABASE_URL=mysql+pymysql://root:root@db:3306/rental_db
-      - PYTHONPATH=/app:/app/app/generated
-      - PYTHONUNBUFFERED=1
-    depends_on:
-      - db
-
   vehicle-db:
     image: mysql:8.0
-    container_name: mysql_vehicle_db_integrated
-    restart: always
     environment:
       MYSQL_DATABASE: vehicle_db
-      MYSQL_ROOT_PASSWORD: root
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?Set MYSQL_ROOT_PASSWORD in .env}
     ports:
       - "3308:3306"
     volumes:
-      - mysql_vehicle_data:/var/lib/mysql
+      - vehicle_data:/var/lib/mysql
     healthcheck:
       test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uroot -p\"$$MYSQL_ROOT_PASSWORD\" --silent"]
       interval: 5s
       timeout: 5s
-      retries: 12
+      retries: 20
+      start_period: 10s
+
+  customer-db:
+    image: mysql:8.0
+    environment:
+      MYSQL_DATABASE: customer_db
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?Set MYSQL_ROOT_PASSWORD in .env}
+    ports:
+      - "3307:3306"
+    volumes:
+      - customer_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uroot -p\"$$MYSQL_ROOT_PASSWORD\" --silent"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 10s
+
+  rental-db:
+    image: mysql:8.0
+    environment:
+      MYSQL_DATABASE: rental_db
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?Set MYSQL_ROOT_PASSWORD in .env}
+    ports:
+      - "3309:3306"
+    volumes:
+      - rental_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uroot -p\"$$MYSQL_ROOT_PASSWORD\" --silent"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
       start_period: 10s
 
   vehicle-service:
-    build:
-      context: ./services/vehicle-service
-      dockerfile: Dockerfile
-    container_name: vehicle_service_container
-    restart: always
+    build: ./services/vehicle-service
+    environment:
+      DATABASE_URL: mysql+pymysql://root:${MYSQL_ROOT_PASSWORD:?Set MYSQL_ROOT_PASSWORD in .env}@vehicle-db:3306/vehicle_db
+      PORT: 50051
+      PYTHONUNBUFFERED: 1
     ports:
       - "50051:50051"
-    environment:
-      - DATABASE_URL=mysql+pymysql://root:root@vehicle-db:3306/vehicle_db
-      - PYTHONUNBUFFERED=1
     depends_on:
       vehicle-db:
         condition: service_healthy
 
+  customer-service:
+    build: ./services/customer-service
+    environment:
+      DATABASE_URL: mysql+pymysql://root:${MYSQL_ROOT_PASSWORD:?Set MYSQL_ROOT_PASSWORD in .env}@customer-db:3306/customer_db
+      PORT: 50052
+      PYTHONUNBUFFERED: 1
+      SEED_ADMIN_USERNAME: ${SEED_ADMIN_USERNAME:?Set SEED_ADMIN_USERNAME in .env}
+      SEED_ADMIN_PASSWORD: ${SEED_ADMIN_PASSWORD:?Set SEED_ADMIN_PASSWORD in .env}
+      SEED_CLIENT_USERNAME: ${SEED_CLIENT_USERNAME:?Set SEED_CLIENT_USERNAME in .env}
+      SEED_CLIENT_PASSWORD: ${SEED_CLIENT_PASSWORD:?Set SEED_CLIENT_PASSWORD in .env}
+      SEED_CLIENT_DNI: ${SEED_CLIENT_DNI:?Set SEED_CLIENT_DNI in .env}
+    ports:
+      - "50052:50052"
+    depends_on:
+      customer-db:
+        condition: service_healthy
+
+  rental-service:
+    build: ./services/rental-service
+    environment:
+      DATABASE_URL: mysql+pymysql://root:${MYSQL_ROOT_PASSWORD:?Set MYSQL_ROOT_PASSWORD in .env}@rental-db:3306/rental_db
+      PYTHONPATH: /app:/app/app/generated
+      PYTHONUNBUFFERED: 1
+    ports:
+      - "50053:50053"
+    depends_on:
+      rental-db:
+        condition: service_healthy
+
+  api-gateway:
+    build:
+      context: .
+      dockerfile: Dockerfile.gateway
+    environment:
+      PORT: 5000
+      NODE_ENV: ${NODE_ENV:-development}
+      JWT_SECRET: ${JWT_SECRET:?Set JWT_SECRET in .env}
+      VEHICLE_GRPC_ADDRESS: vehicle-service:50051
+      CUSTOMER_GRPC_ADDRESS: customer-service:50052
+      RENTAL_GRPC_ADDRESS: rental-service:50053
+    ports:
+      - "5000:5000"
+    depends_on:
+      - vehicle-service
+      - customer-service
+      - rental-service
+
+  frontend:
+    build: ./front/mi-app
+    environment:
+      VITE_API_BASE_URL: http://localhost:5000
+    ports:
+      - "5173:5173"
+    depends_on:
+      - api-gateway
+
 volumes:
-  mysql_data:
-  mysql_vehicle_data:
+  vehicle_data:
+  customer_data:
+  rental_data:

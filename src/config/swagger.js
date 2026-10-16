@@ -14,13 +14,46 @@ const options = {
         description: 'Servidor Local',
       },
     ],
+    security: [{ bearerAuth: [] }],
     tags: [
       { name: 'Vehiculos', description: 'ABM de vehiculos' },
       { name: 'Clientes', description: 'ABM de clientes' },
       { name: 'Reservas', description: 'Creacion y cancelacion de reservas' },
     ],
     components: {
+      securitySchemes: {
+        bearerAuth: {
+          type: 'http',
+          scheme: 'bearer',
+          bearerFormat: 'JWT',
+          description: 'Obtené el token en POST /api/auth/login y enviá Authorization: Bearer <token>.',
+        },
+      },
       schemas: {
+        LoginRequest: {
+          type: 'object',
+          required: ['username', 'password'],
+          properties: {
+            username: { type: 'string', example: 'cliente' },
+            password: { type: 'string', format: 'password' },
+          },
+        },
+        LoginResponse: {
+          type: 'object',
+          properties: {
+            token: { type: 'string', description: 'JWT firmado por el API Gateway.' },
+            expiresIn: { type: 'integer', example: 28800 },
+            user: {
+              type: 'object',
+              properties: {
+                id: { type: 'string' },
+                username: { type: 'string' },
+                role: { type: 'string', enum: ['ADMIN', 'CLIENTE'] },
+                customerId: { type: 'string', nullable: true },
+              },
+            },
+          },
+        },
         Vehiculo: {
           type: 'object',
           properties: {
@@ -65,6 +98,30 @@ const options = {
       },
     },
     paths: {
+      '/api/auth/login': {
+        post: {
+          security: [],
+          tags: ['Autenticación'],
+          summary: 'Iniciar sesión y obtener un JWT',
+          requestBody: { required: true, content: { 'application/json': { schema: { $ref: '#/components/schemas/LoginRequest' } } } },
+          responses: {
+            200: { description: 'Credenciales válidas', content: { 'application/json': { schema: { $ref: '#/components/schemas/LoginResponse' } } } },
+            400: { description: 'Falta usuario o contraseña' },
+            401: { description: 'Usuario o contraseña inválidos' },
+            503: { description: 'Customer Service no disponible' },
+          },
+        },
+      },
+      '/api/auth/logout': {
+        post: {
+          tags: ['Autenticación'],
+          summary: 'Revocar el JWT de la instancia actual y cerrar sesión',
+          responses: {
+            204: { description: 'Sesión cerrada' },
+            401: { description: 'Token ausente, inválido o vencido' },
+          },
+        },
+      },
       '/api/vehiculos': {
         get: {
           tags: ['Vehiculos'], summary: 'Listar vehiculos activos',

@@ -37,6 +37,11 @@ class VehicleServiceTests(unittest.TestCase):
             patente="AA123BB",
             operativo=True,
             activo=True,
+            anio=2024,
+            color="Gris",
+            tipo="SEDAN",
+            precio_diario=45000.0,
+            estado="DISPONIBLE",
         )
 
         with (
@@ -73,6 +78,10 @@ class VehicleServiceTests(unittest.TestCase):
                     marca="Toyota",
                     modelo="Corolla",
                     patente="AA123BB",
+                    anio=2024,
+                    color="Gris",
+                    tipo="SEDAN",
+                    precio_diario=45000.0,
                 ),
                 self.context,
             )

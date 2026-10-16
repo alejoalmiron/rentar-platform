@@ -24,3 +24,7 @@ dist-ssr
 *.sw?
 
 node_modules/
+
+# Local Python environments do not belong to the frontend repository
+venv/
+.venv/

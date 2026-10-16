@@ -85,3 +85,30 @@ def test_deactivate_customer(grpc_channel):
     deactivated = stub.DeactivateCustomer(pb2.DeactivateCustomerRequest(id=test_state["created_id"]))
     
     assert deactivated.activo is False
+
+def test_authenticate_admin(grpc_channel):
+    response = grpc_channel.AuthenticateUser(pb2.AuthenticateUserRequest(
+        username=os.environ["SEED_ADMIN_USERNAME"],
+        password=os.environ["SEED_ADMIN_PASSWORD"],
+    ))
+
+    assert response.role == "ADMIN"
+    assert response.customer_id == ""
+
+def test_authenticate_demo_customer(grpc_channel):
+    response = grpc_channel.AuthenticateUser(pb2.AuthenticateUserRequest(
+        username=os.environ["SEED_CLIENT_USERNAME"],
+        password=os.environ["SEED_CLIENT_PASSWORD"],
+    ))
+
+    assert response.role == "CLIENTE"
+    assert response.customer_id != ""
+
+def test_reject_invalid_credentials(grpc_channel):
+    with pytest.raises(grpc.RpcError) as exc_info:
+        grpc_channel.AuthenticateUser(pb2.AuthenticateUserRequest(
+            username=os.environ["SEED_ADMIN_USERNAME"],
+            password="incorrecta",
+        ))
+
+    assert exc_info.value.code() == grpc.StatusCode.UNAUTHENTICATED
