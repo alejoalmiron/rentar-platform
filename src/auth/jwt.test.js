@@ -33,7 +33,7 @@ test('producción rechaza el secreto de ejemplo', () => {
   process.env.NODE_ENV = 'production';
   process.env.JWT_SECRET = 'cambiar-por-un-secreto-aleatorio-de-al-menos-32-caracteres';
   try {
-    assert.throws(() => validateJwtConfiguration(), /no usar un ejemplo/);
+    assert.throws(() => validateJwtConfiguration(), /JWT_SECRET aleatorio/);
   } finally {
     if (previousEnvironment === undefined) delete process.env.NODE_ENV;
     else process.env.NODE_ENV = previousEnvironment;

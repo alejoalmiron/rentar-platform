@@ -35,7 +35,7 @@ const options = {
           required: ['username', 'password'],
           properties: {
             username: { type: 'string', example: 'cliente' },
-            password: { type: 'string', format: 'password', example: 'ClienteRentar2026!' },
+            password: { type: 'string', format: 'password' },
           },
         },
         LoginResponse: {

@@ -11,11 +11,15 @@ def seed_users():
     Base.metadata.create_all(bind=engine)
     db = SessionLocal()
     try:
-        admin_username = os.getenv("SEED_ADMIN_USERNAME", "admin").strip().lower()
-        admin_password = os.getenv("SEED_ADMIN_PASSWORD", "AdminRentar2026!")
-        client_username = os.getenv("SEED_CLIENT_USERNAME", "cliente").strip().lower()
-        client_password = os.getenv("SEED_CLIENT_PASSWORD", "ClienteRentar2026!")
-        client_dni = os.getenv("SEED_CLIENT_DNI", "40999000")
+        required = ("SEED_ADMIN_USERNAME", "SEED_ADMIN_PASSWORD", "SEED_CLIENT_USERNAME", "SEED_CLIENT_PASSWORD", "SEED_CLIENT_DNI")
+        missing = [name for name in required if not os.getenv(name)]
+        if missing:
+            raise RuntimeError("Faltan variables para crear cuentas iniciales: " + ", ".join(missing))
+        admin_username = os.environ["SEED_ADMIN_USERNAME"].strip().lower()
+        admin_password = os.environ["SEED_ADMIN_PASSWORD"]
+        client_username = os.environ["SEED_CLIENT_USERNAME"].strip().lower()
+        client_password = os.environ["SEED_CLIENT_PASSWORD"]
+        client_dni = os.environ["SEED_CLIENT_DNI"]
 
         demo_customer = db.query(CustomerModel).filter(CustomerModel.dni == client_dni).first()
         if not demo_customer:

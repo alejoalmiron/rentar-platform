@@ -22,14 +22,13 @@ La interfaz web se comunica exclusivamente con el Gateway. El Gateway orquesta l
 
 ## Inicio completo con Docker
 
-Desde la raíz del repositorio, crear el archivo local de entorno y levantar el sistema:
+Desde la raíz del repositorio, cargar la plantilla local de entorno y levantar el sistema:
 
 ```powershell
-Copy-Item .env.example .env
-docker compose up --build
+docker compose --env-file .env.example up --build -d
 ```
 
-En Git Bash o Linux/macOS, el primer comando equivalente es `cp .env.example .env`. Para iniciar en segundo plano, agregar `-d` a `docker compose up --build`.
+Si vas a personalizar valores, copiá `.env.example` a `.env`, editá ese archivo ignorado por Git y ejecutá `docker compose up --build -d`. No publiques `.env` ni uses las credenciales de ejemplo fuera de desarrollo.
 
 URLs y puertos:
 

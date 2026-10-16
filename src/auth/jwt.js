@@ -21,11 +21,10 @@ export class AuthorizationError extends Error {
 function getSecret() {
   const secret = process.env.JWT_SECRET;
   const isExampleSecret = /^(cambiar-por|rentar-compose-development)/i.test(secret || '');
-  if (secret && secret.length >= 32 && !(process.env.NODE_ENV === 'production' && isExampleSecret)) return secret;
-  if (process.env.NODE_ENV === 'production') {
-    throw new Error('JWT_SECRET debe ser aleatorio, no usar un ejemplo y tener al menos 32 caracteres en producción');
+  if (!secret || secret.length < 32 || (process.env.NODE_ENV === 'production' && isExampleSecret)) {
+    throw new Error('Definí JWT_SECRET aleatorio de al menos 32 caracteres en el entorno');
   }
-  return 'rentar-local-development-secret-change-before-deploy';
+  return secret;
 }
 
 export function validateJwtConfiguration() {
