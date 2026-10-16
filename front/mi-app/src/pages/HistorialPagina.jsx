@@ -36,6 +36,11 @@ export default function HistorialPagina() {
   const [patenteFiltro, setPatenteFiltro] = useState('');
 
   const cargarHistorial = useCallback(async () => {
+    if (!estadoFiltro && !patenteFiltro.trim()) {
+      setHistorial([]);
+      return;
+    }
+
     setCargando(true);
 
     try {
@@ -57,10 +62,6 @@ export default function HistorialPagina() {
       setCargando(false);
     }
   }, [estadoFiltro, patenteFiltro]);
-
-  useEffect(() => {
-    Promise.resolve().then(cargarHistorial);
-  }, [cargarHistorial]);
 
   const handleFiltrar = (e) => {
     e.preventDefault();
