@@ -47,8 +47,8 @@ Los roles reconocidos son `ADMIN` y `CLIENTE`. El Gateway valida la firma y venc
 | `fechaInicio`, `fechaFin` | `String!` | Fechas ISO-8601. |
 | `estado` | `EstadoReserva!` | Estado de la reserva. |
 | `montoTotal` | `Float!` | Importe calculado por Rental Service. |
-| `cliente` | `Cliente!` | Cliente asociado. |
-| `vehiculo` | `Vehiculo!` | Vehículo asociado. |
+| `cliente` | `Cliente` | Cliente asociado; `null` si el registro ya no existe en Customer Service. |
+| `vehiculo` | `Vehiculo` | Vehículo asociado; `null` si el registro ya no existe en Vehicle Service. |
 
 ### Enums
 
