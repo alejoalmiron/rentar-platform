@@ -75,10 +75,10 @@ export const typeDefs = `
     estado: EstadoReserva!
     """Importe calculado por Rental Service."""
     montoTotal: Float!
-    """Cliente asociado a la reserva."""
-    cliente: Cliente!
-    """Vehículo asociado a la reserva."""
-    vehiculo: Vehiculo!
+    """Cliente asociado a la reserva; puede ser null si el registro ya no existe en Customer Service."""
+    cliente: Cliente
+    """Vehículo asociado a la reserva; puede ser null si el registro ya no existe en Vehicle Service."""
+    vehiculo: Vehiculo
   }
 
   """Estados de ciclo de vida de una reserva."""

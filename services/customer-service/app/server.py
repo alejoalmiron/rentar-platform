@@ -1,13 +1,28 @@
 from concurrent import futures
 import os
+import time
 
 # pylint: disable=import-error, no-name-in-module, wrong-import-position, no-member
 import grpc
+from sqlalchemy.exc import OperationalError
 
 from app.customer.v1 import customer_pb2 as pb2
 from app.customer.v1 import customer_pb2_grpc as pb2_grpc
 from .service import CustomerNotFoundError, CustomerServiceLogic, DuplicateCustomerError
 from .seed import seed_users
+
+
+def seed_with_retry(max_attempts=20, delay_seconds=3):
+    """Espera a que MySQL esté disponible antes de ejecutar el seed."""
+    for attempt in range(1, max_attempts + 1):
+        try:
+            seed_users()
+            return
+        except OperationalError:
+            print(f"Base de datos no disponible (intento {attempt}/{max_attempts}). Reintentando en {delay_seconds}s...")
+            if attempt == max_attempts:
+                raise
+            time.sleep(delay_seconds)
 
 
 class CustomerServiceServicer(pb2_grpc.CustomerServiceServicer):
@@ -88,7 +103,7 @@ class CustomerServiceServicer(pb2_grpc.CustomerServiceServicer):
         )
 
 def serve():
-    seed_users()
+    seed_with_retry()
     server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
     pb2_grpc.add_CustomerServiceServicer_to_server(CustomerServiceServicer(), server)
     port = os.getenv('PORT', '50052')

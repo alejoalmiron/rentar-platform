@@ -12,16 +12,26 @@ function requireGraphqlAuth(context) {
   return context.auth;
 }
 
+async function safeLookup(operation) {
+  try {
+    return await operation();
+  } catch {
+    // La entidad referenciada pudo haberse dado de baja o provenir de datos
+    // históricos de otro servicio; el historial no debe fallar por eso.
+    return null;
+  }
+}
+
 async function hydrateReservation(reservation) {
   const customerId = reservation.customerId ?? reservation.clienteId;
   const vehicleId = reservation.vehicleId ?? reservation.vehiculoId;
   const [cliente, vehiculo] = await Promise.all([
     reservation.cliente || customerId === undefined
-      ? reservation.cliente
-      : customerClient.getById(customerId),
+      ? reservation.cliente ?? null
+      : safeLookup(() => customerClient.getById(customerId)),
     reservation.vehiculo || vehicleId === undefined
-      ? reservation.vehiculo
-      : vehicleClient.getById(vehicleId),
+      ? reservation.vehiculo ?? null
+      : safeLookup(() => vehicleClient.getById(vehicleId)),
   ]);
 
   return { ...reservation, cliente, vehiculo };

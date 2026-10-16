@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import Card from '../components/Card';
 import CampoTexto from '../components/CampoTexto';
 import Boton from '../components/Boton';
@@ -36,6 +36,11 @@ export default function HistorialPagina() {
   const [patenteFiltro, setPatenteFiltro] = useState('');
 
   const cargarHistorial = useCallback(async () => {
+    if (!estadoFiltro && !patenteFiltro.trim()) {
+      setHistorial([]);
+      return;
+    }
+
     setCargando(true);
 
     try {
@@ -57,10 +62,6 @@ export default function HistorialPagina() {
       setCargando(false);
     }
   }, [estadoFiltro, patenteFiltro]);
-
-  useEffect(() => {
-    Promise.resolve().then(cargarHistorial);
-  }, [cargarHistorial]);
 
   const handleFiltrar = (e) => {
     e.preventDefault();
@@ -139,6 +140,8 @@ export default function HistorialPagina() {
                   border: '1px solid #d1d5db',
                   fontSize: '14px',
                   backgroundColor: '#ffffff',
+                  color: '#1f2937',
+                  colorScheme: 'light',
                 }}
               >
                 <option value="">Todos los estados</option>
