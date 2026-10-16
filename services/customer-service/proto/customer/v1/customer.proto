@@ -9,6 +9,7 @@ service CustomerService {
   rpc UpdateCustomer (UpdateCustomerRequest) returns (CustomerResponse);
   rpc DeactivateCustomer (DeactivateCustomerRequest) returns (CustomerResponse);
   rpc ValidateActiveCustomer (ValidateCustomerRequest) returns (ValidateCustomerResponse);
+  rpc AuthenticateUser (AuthenticateUserRequest) returns (AuthenticateUserResponse);
 }
 
 message Empty {}
@@ -20,6 +21,7 @@ message CustomerResponse {
   string apellido = 4;
   string email = 5;
   bool activo = 6;
+  string telefono = 7;
 }
 
 message CustomerListResponse {
@@ -35,6 +37,7 @@ message CreateCustomerRequest {
   string nombre = 2;
   string apellido = 3;
   string email = 4;
+  string telefono = 5;
 }
 
 message UpdateCustomerRequest {
@@ -42,6 +45,7 @@ message UpdateCustomerRequest {
   string nombre = 2;
   string apellido = 3;
   string email = 4;
+  string telefono = 5;
 }
 
 message DeactivateCustomerRequest {
@@ -56,4 +60,16 @@ message ValidateCustomerResponse {
   bool exists = 1;
   bool is_active = 2;
   string message = 3;
+}
+
+message AuthenticateUserRequest {
+  string username = 1;
+  string password = 2;
+}
+
+message AuthenticateUserResponse {
+  string user_id = 1;
+  string username = 2;
+  string role = 3;
+  string customer_id = 4;
 }

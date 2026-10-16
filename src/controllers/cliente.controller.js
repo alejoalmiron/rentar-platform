@@ -2,6 +2,13 @@ import { customerClient } from '../grpc/customer.client.js';
 import { respondWithRpc } from './rpcResponse.js';
 
 export const getClientes = async (req, res) => {
+  if (req.auth.role === 'CLIENTE') {
+    return respondWithRpc(
+      res,
+      () => customerClient.getById(req.auth.customerId),
+      (cliente) => [withDni(cliente)],
+    );
+  }
   return respondWithRpc(res, customerClient.list, (clientes) => clientes.map(withDni));
 };
 

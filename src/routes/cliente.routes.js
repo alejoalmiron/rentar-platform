@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import { requireAdminOrOwnCustomer, requireAuth, requireRole } from '../auth/middleware.js';
 import { 
   getClientes, 
   getClienteById, 
@@ -9,10 +10,11 @@ import {
 
 const router = Router();
 
+router.use(requireAuth);
 router.get('/', getClientes);
-router.get('/:id', getClienteById);
-router.post('/', createCliente);
-router.put('/:id', updateCliente);
-router.delete('/:id', deleteCliente);
+router.get('/:id', requireAdminOrOwnCustomer, getClienteById);
+router.post('/', requireRole('ADMIN'), createCliente);
+router.put('/:id', requireRole('ADMIN'), updateCliente);
+router.delete('/:id', requireRole('ADMIN'), deleteCliente);
 
 export default router;

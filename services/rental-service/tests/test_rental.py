@@ -40,10 +40,11 @@ def test_crear_y_cancelar_renta(stub):
         vehiculoId="vehiculo-test-A",
         fechaInicio="2026-12-01",
         fechaFin="2026-12-05",
-        precioTotal=250.0
+        precioDiario=62.5
     ))
     assert response.id != ""
     assert response.estado == "CONFIRMADA"
+    assert response.precioTotal == 250.0
     renta_id = response.id
 
     cancel_response = stub.CancelarRenta(rental_pb2.CancelarRentaRequest(id=renta_id))
@@ -55,7 +56,7 @@ def test_solapamiento_reservas(stub):
         vehiculoId="vehiculo-test-B",
         fechaInicio="2026-12-10",
         fechaFin="2026-12-15",
-        precioTotal=300.0
+        precioDiario=60.0
     ))
 
     with pytest.raises(grpc.RpcError) as exc_info:
@@ -64,7 +65,7 @@ def test_solapamiento_reservas(stub):
             vehiculoId="vehiculo-test-B",  
             fechaInicio="2026-12-12",     
             fechaFin="2026-12-18",
-            precioTotal=350.0
+            precioDiario=60.0
         ))
     
     assert exc_info.value.code() == grpc.StatusCode.ALREADY_EXISTS

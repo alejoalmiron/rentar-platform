@@ -1,6 +1,7 @@
-grpcio
-grpcio-tools
-protobuf
-pymysql
-SQLAlchemy
-python-dotenv
+grpcio==1.66.1
+grpcio-tools==1.66.1
+protobuf==5.27.2
+PyMySQL==1.1.1
+SQLAlchemy==2.0.32
+python-dotenv==1.0.1
+pytest==8.4.2

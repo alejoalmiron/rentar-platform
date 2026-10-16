@@ -5,15 +5,18 @@ import Boton from '../components/Boton';
 import Tabla from '../components/Tabla';
 
 import { consultarGraphQL } from '../service/ConectarAlBackend';
+import { useAuth } from '../context/useAuth';
 
 export default function ReservasPagina() {
+  const { user } = useAuth();
+  const esAdmin = user?.role === 'ADMIN';
   const [dniFiltro, setDniFiltro] = useState('');
   const [reservas, setReservas] = useState([]);
   const [cargando, setCargando] = useState(false);
   const [buscado, setBuscado] = useState(false);
 
   const QUERY_RESERVAS_CLIENTE = `
-    query ObtenerReservasCliente($dni: String!) {
+    query ObtenerReservasCliente($dni: String) {
       reservasPorCliente(dni: $dni) {
         id
         fechaInicio
@@ -40,7 +43,7 @@ export default function ReservasPagina() {
 
   const handleBuscarReservas = async (e) => {
     e.preventDefault();
-    if (!dniFiltro.trim()) {
+    if (esAdmin && !dniFiltro.trim()) {
       alert('Ingresá un DNI para buscar las reservas.');
       return;
     }
@@ -49,7 +52,9 @@ export default function ReservasPagina() {
     setBuscado(true);
 
     try {
-      const res = await consultarGraphQL(QUERY_RESERVAS_CLIENTE, { dni: dniFiltro.trim() });
+      const res = await consultarGraphQL(QUERY_RESERVAS_CLIENTE, {
+        dni: esAdmin ? dniFiltro.trim() : null,
+      });
       if (res?.data?.reservasPorCliente) {
         setReservas(res.data.reservasPorCliente);
       } else {
@@ -116,14 +121,9 @@ export default function ReservasPagina() {
     <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
       <Card title="Mis Reservas">
         <form onSubmit={handleBuscarReservas} style={{ display: 'flex', gap: '15px', alignItems: 'flex-end' }}>
-          <div style={{ flex: 1 }}>
-            <CampoTexto
-              label="DNI del Cliente *"
-              placeholder="Ej: 38999111"
-              value={dniFiltro}
-              onChange={(e) => setDniFiltro(e.target.value)}
-            />
-          </div>
+          {esAdmin && <div style={{ flex: 1 }}>
+            <CampoTexto label="DNI del Cliente *" placeholder="Ej: 38999111" value={dniFiltro} onChange={(e) => setDniFiltro(e.target.value)} />
+          </div>}
           <Boton type="submit" disabled={cargando}>
             {cargando ? 'Buscando...' : 'Buscar Reservas'}
           </Boton>

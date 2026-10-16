@@ -24,7 +24,7 @@ export async function createReservation(input) {
   const [customerValidation, vehicleValidation, reservationAvailability] = await Promise.all([
     customerClient.validate({ id: customer.id, documento: customer.documento || customer.dni }),
     vehicleClient.checkOperational({ id: vehicle.id, patente: vehicle.patente }),
-    rentalClient.checkAvailability({ id: vehicle.id, fechaInicio, fechaFin }),
+    rentalClient.checkAvailability({ vehiculoId: vehicle.id, fechaInicio, fechaFin }),
   ]);
 
   assertAllowed(customerValidation, 'El cliente');
@@ -50,5 +50,6 @@ export async function createReservation(input) {
     vehiculoId: vehicle.id,
     fechaInicio,
     fechaFin,
+    precioDiario: vehicle.precioDiario,
   });
 }

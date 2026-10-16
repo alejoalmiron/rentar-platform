@@ -3,7 +3,9 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import swaggerUi from 'swagger-ui-express';
 import { swaggerSpec } from './config/swagger.js';
+import authRoutes from './routes/auth.routes.js';
 import { closeGrpcClients } from './grpc/clientFactory.js';
+import { optionalAuthentication, validateJwtConfiguration } from './auth/jwt.js';
 import vehiculoRoutes from './routes/vehiculo.routes.js';
 import clienteRoutes from './routes/cliente.routes.js';
 
@@ -27,6 +29,7 @@ app.use(express.json());
 
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
+app.use('/api/auth', authRoutes);
 app.use('/api/vehiculos', vehiculoRoutes);
 app.use('/api/clientes', clienteRoutes);
 app.use('/api/reservas', reservaRoutes);
@@ -36,6 +39,7 @@ app.get('/', (req, res) => {
 });
 
 async function startServer() {
+  if (process.env.NODE_ENV === 'production') validateJwtConfiguration();
   const server = new ApolloServer({ 
     typeDefs, 
     resolvers,
@@ -43,7 +47,9 @@ async function startServer() {
   });
   
   await server.start();
-  app.use('/graphql', express.json(), expressMiddleware(server));
+  app.use('/graphql', express.json(), expressMiddleware(server, {
+    context: async ({ req }) => ({ auth: optionalAuthentication(req) }),
+  }));
 
   const PORT = process.env.PORT || 5000;
   httpServer = app.listen(PORT, () => {

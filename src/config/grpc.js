@@ -18,13 +18,15 @@ export const grpcConfig = {
     customer: {
       address: process.env.CUSTOMER_GRPC_ADDRESS || 'localhost:50052',
       file: 'customer/v1/customer.proto',
-      packageName: 'rentar.customer.v1',
+      protoRoot: path.resolve(projectRoot, 'services/customer-service/proto'),
+      packageName: 'customer.v1',
       serviceName: 'CustomerService',
     },
     rental: {
       address: process.env.RENTAL_GRPC_ADDRESS || 'localhost:50053',
       file: 'rental/v1/rental.proto',
-      packageName: 'rentar.rental.v1',
+      protoRoot: path.resolve(projectRoot, 'services/rental-service/proto'),
+      packageName: 'rental.v1',
       serviceName: 'RentalService',
     },
   },

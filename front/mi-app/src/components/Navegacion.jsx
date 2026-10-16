@@ -1,16 +1,28 @@
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/useAuth';
 
 export default function Navegacion() {
   const location = useLocation();
+  const navigate = useNavigate();
+  const { user, logout } = useAuth();
 
-  const enlaces = [
+  const enlacesComunes = [
     { path: '/', label: 'Disponibilidad' },
-    { path: '/admin/vehiculos', label: 'Vehículos (ABM)' },
-    { path: '/admin/clientes', label: 'Clientes (ABM)' },
     { path: '/reservar', label: 'Nueva Reserva' },
     { path: '/mis-reservas', label: 'Mis Reservas' },
     { path: '/historial', label: 'Historial' },
   ];
+  const enlaces = user?.role === 'ADMIN'
+    ? [...enlacesComunes, { path: '/admin/vehiculos', label: 'Vehículos (ABM)' }, { path: '/admin/clientes', label: 'Clientes (ABM)' }]
+    : enlacesComunes;
+
+  async function handleLogout() {
+    try {
+      await logout();
+    } finally {
+      navigate('/login', { replace: true });
+    }
+  }
 
   return (
     <nav
@@ -59,6 +71,10 @@ export default function Navegacion() {
           );
         })}
       </ul>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12, color: '#f3f4f6' }}>
+        <span>{user?.username} · {user?.role}</span>
+        <button type="button" onClick={handleLogout} style={{ cursor: 'pointer' }}>Salir</button>
+      </div>
     </nav>
   );
 }

@@ -1,8 +1,37 @@
 import uuid
+import bcrypt
 from .repository import CustomerRepository, CustomerModel
 from .db import SessionLocal
 
+class DuplicateCustomerError(ValueError):
+    pass
+
+class CustomerNotFoundError(ValueError):
+    pass
+
 class CustomerServiceLogic:
+    @staticmethod
+    def authenticate_user(username: str, password: str):
+        db = SessionLocal()
+        try:
+            user = CustomerRepository.get_user_by_username(db, username.strip().lower())
+            if not user or not user.activo:
+                return None
+            if not bcrypt.checkpw(password.encode("utf-8"), user.password_hash.encode("utf-8")):
+                return None
+            if user.customer_id:
+                customer = CustomerRepository.get_by_id(db, user.customer_id)
+                if not customer or not customer.activo:
+                    return None
+            return {
+                "id": user.id,
+                "username": user.username,
+                "role": user.role,
+                "customer_id": user.customer_id or "",
+            }
+        finally:
+            db.close()
+
     @staticmethod
     def list_customers():
         db = SessionLocal()
@@ -28,7 +57,9 @@ class CustomerServiceLogic:
 
             existing = CustomerRepository.get_by_dni(db, data.dni)
             if existing:
-                raise ValueError("Ya existe un cliente registrado con ese DNI")
+                raise DuplicateCustomerError("Ya existe un cliente registrado con ese DNI")
+            if CustomerRepository.get_by_email(db, data.email):
+                raise DuplicateCustomerError("Ya existe un cliente registrado con ese email")
 
             new_customer = CustomerModel(
                 id=str(uuid.uuid4()),
@@ -36,6 +67,7 @@ class CustomerServiceLogic:
                 nombre=data.nombre,
                 apellido=data.apellido,
                 email=data.email,
+                telefono=data.telefono or None,
                 activo=True
             )
             return CustomerRepository.save(db, new_customer)
@@ -48,11 +80,17 @@ class CustomerServiceLogic:
         try:
             customer = CustomerRepository.get_by_id(db, customer_id)
             if not customer:
-                raise ValueError("Cliente no encontrado")
+                raise CustomerNotFoundError("Cliente no encontrado")
+
+            if data.email and data.email != customer.email:
+                existing_email = CustomerRepository.get_by_email(db, data.email)
+                if existing_email:
+                    raise DuplicateCustomerError("Ya existe un cliente registrado con ese email")
 
             customer.nombre = data.nombre or customer.nombre
             customer.apellido = data.apellido or customer.apellido
             customer.email = data.email or customer.email
+            customer.telefono = data.telefono or customer.telefono
             
             return CustomerRepository.update(db, customer)
         finally:
@@ -64,7 +102,7 @@ class CustomerServiceLogic:
         try:
             customer = CustomerRepository.get_by_id(db, customer_id)
             if not customer:
-                raise ValueError("Cliente no encontrado")
+                raise CustomerNotFoundError("Cliente no encontrado")
             
             customer.activo = False
             return CustomerRepository.update(db, customer)

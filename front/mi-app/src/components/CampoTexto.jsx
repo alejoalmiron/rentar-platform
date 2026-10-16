@@ -1,4 +1,4 @@
-export default function CampoTexto({label, type = "text", name, value,onChange,placeholder = "", required = false}) {
+export default function CampoTexto({label, type = "text", name, value,onChange,placeholder = "", required = false, autoComplete}) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginBottom: '16px' }}>
       {label && (
@@ -9,6 +9,7 @@ export default function CampoTexto({label, type = "text", name, value,onChange,p
       <input
         type={type}
         name={name}
+        autoComplete={autoComplete}
         value={value}
         onChange={onChange}
         placeholder={placeholder}

@@ -1,7 +1,8 @@
-grpcio
-grpcio-tools
-SQLAlchemy
-pymysql==1.1.0
+grpcio==1.66.1
+grpcio-tools==1.66.1
+protobuf==5.27.2
+SQLAlchemy==2.0.32
+PyMySQL==1.1.1
 cryptography
-python-dotenv==1.0.0
+python-dotenv==1.0.1
 alembic==1.12.1
