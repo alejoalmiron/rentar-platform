@@ -1,0 +1,111 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://rentar.local/eventos/contratos.schema.json",
+  "title": "Contratos de eventos Rentar (Hito 3)",
+  "description": "Fuente de verdad tipada. Las routing keys coinciden con workers/common/topology.py.",
+  "$defs": {
+    "vehiculos.verificacion.solicitada": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["vehiculoId", "patente"],
+      "properties": {
+        "vehiculoId": { "type": "integer", "minimum": 1 },
+        "patente": { "type": "string", "minLength": 1 }
+      },
+      "examples": [{ "vehiculoId": 15, "patente": "ABC123" }]
+    },
+    "vehiculos.verificacion.resultado": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["vehiculoId", "patente", "resultado"],
+      "properties": {
+        "vehiculoId": { "type": "integer", "minimum": 1 },
+        "patente": { "type": "string", "minLength": 1 },
+        "resultado": { "type": "string", "enum": ["VALIDADO", "ROBADO"] }
+      },
+      "examples": [{ "vehiculoId": 15, "patente": "ABC123", "resultado": "VALIDADO" }]
+    },
+    "vehiculos.externos.registrados": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["vehiculoExternoId", "clienteId", "patente"],
+      "properties": {
+        "vehiculoExternoId": { "type": "integer", "minimum": 1 },
+        "clienteId": { "type": "integer", "minimum": 1 },
+        "patente": { "type": "string", "minLength": 1 }
+      },
+      "examples": [{ "vehiculoExternoId": 50, "clienteId": 89, "patente": "DEF456" }]
+    },
+    "vehiculos.externos.validacion.patente": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["vehiculoExternoId", "patente", "resultado"],
+      "properties": {
+        "vehiculoExternoId": { "type": "integer", "minimum": 1 },
+        "patente": { "type": "string", "minLength": 1 },
+        "resultado": { "type": "string", "enum": ["VALIDADO", "RECHAZADO"] }
+      },
+      "examples": [{ "vehiculoExternoId": 50, "patente": "DEF456", "resultado": "VALIDADO" }]
+    },
+    "vehiculos.externos.validacion.titularidad": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["vehiculoExternoId", "clienteId", "documento", "patente", "resultado"],
+      "properties": {
+        "vehiculoExternoId": { "type": "integer", "minimum": 1 },
+        "clienteId": { "type": "integer", "minimum": 1 },
+        "documento": { "type": "string", "minLength": 1 },
+        "patente": { "type": "string", "minLength": 1 },
+        "resultado": { "type": "string", "enum": ["VALIDADO", "RECHAZADO"] }
+      },
+      "examples": [
+        {
+          "vehiculoExternoId": 50,
+          "clienteId": 89,
+          "documento": "30123456",
+          "patente": "DEF456",
+          "resultado": "VALIDADO"
+        }
+      ]
+    },
+    "vehiculos.externos.validacion.completada": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["vehiculoExternoId"],
+      "properties": {
+        "vehiculoExternoId": { "type": "integer", "minimum": 1 }
+      },
+      "examples": [{ "vehiculoExternoId": 50 }]
+    },
+    "reserva.confirmada": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["reservaId", "vehiculoId", "fechaInicio", "fechaFin"],
+      "properties": {
+        "reservaId": { "type": "integer", "minimum": 1 },
+        "vehiculoId": { "type": "integer", "minimum": 1 },
+        "fechaInicio": { "type": "string", "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}$" },
+        "fechaFin": { "type": "string", "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}$" }
+      },
+      "examples": [
+        {
+          "reservaId": 150,
+          "vehiculoId": 15,
+          "fechaInicio": "2026-10-10T10:00:00",
+          "fechaFin": "2026-10-15T10:00:00"
+        }
+      ]
+    },
+    "mantenimiento.resultado": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["reservaId", "vehiculoId", "resultado"],
+      "properties": {
+        "reservaId": { "type": "integer", "minimum": 1 },
+        "vehiculoId": { "type": "integer", "minimum": 1 },
+        "resultado": { "type": "string", "enum": ["REALIZADO", "NO_REALIZADO"] }
+      },
+      "examples": [{ "reservaId": 150, "vehiculoId": 15, "resultado": "REALIZADO" }]
+    }
+  }
+}
