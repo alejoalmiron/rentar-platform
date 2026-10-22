@@ -4,7 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "check": "node --check src/index.js && node --check src/config/grpc.js && node --check src/config/swagger.js && node --check src/auth/jwt.js && node --check src/auth/middleware.js && node --check src/auth/jwt.test.js && node --check src/controllers/auth.controller.js && node --check src/controllers/cliente.controller.js && node --check src/controllers/reserva.controller.js && node --check src/controllers/rpcResponse.js && node --check src/controllers/vehiculo.controller.js && node --check src/graphql/schema.js && node --check src/graphql/resolvers.js && node --check src/grpc/clientFactory.js && node --check src/grpc/customer.client.js && node --check src/grpc/httpErrors.js && node --check src/grpc/rental.client.js && node --check src/grpc/timestamps.js && node --check src/grpc/vehicle.client.js && node --check src/orchestrators/reserva.orchestrator.js && node --check src/routes/auth.routes.js && node --check src/routes/cliente.routes.js && node --check src/routes/reserva.routes.js && node --check src/routes/vehiculo.routes.js",
+    "check": "node --check src/index.js && node --check src/config/grpc.js && node --check src/config/swagger.js && node --check src/auth/jwt.js && node --check src/auth/middleware.js && node --check src/auth/jwt.test.js && node --check src/controllers/auth.controller.js && node --check src/controllers/cliente.controller.js && node --check src/controllers/reserva.controller.js && node --check src/controllers/rpcResponse.js && node --check src/controllers/vehiculo.controller.js && node --check src/graphql/schema.js && node --check src/graphql/resolvers.js && node --check src/grpc/clientFactory.js && node --check src/grpc/customer.client.js && node --check src/grpc/httpErrors.js && node --check src/grpc/rental.client.js && node --check src/grpc/timestamps.js && node --check src/grpc/vehicle.client.js && node --check src/messaging/rabbitmq.js && node --check src/orchestrators/reserva.orchestrator.js && node --check src/routes/auth.routes.js && node --check src/routes/cliente.routes.js && node --check src/routes/reserva.routes.js && node --check src/routes/vehiculo.routes.js",
     "test": "npm run check && node --test src/auth/jwt.test.js",
     "dev": "nodemon src/index.js",
     "start": "node src/index.js"
@@ -25,6 +25,7 @@
     "@apollo/server": "^5.5.1",
     "@as-integrations/express5": "^1.1.2",
     "@grpc/grpc-js": "^1.14.6",
+    "amqplib": "^0.10.9",
     "@grpc/proto-loader": "^0.8.1",
     "cors": "^2.8.6",
     "dotenv": "^18.0.0",

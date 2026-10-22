@@ -11,6 +11,7 @@ Proyecto de la Universidad Nacional de Lanús para **Desarrollo de Software en S
 - `services/rental-service`: Python 3.10, gRPC, SQLAlchemy y MySQL `rental_db`; aplica disponibilidad temporal, calcula importes y gestiona el ciclo de vida de reservas.
 - Contratos canónicos: `services/<servicio>/proto/<dominio>/v1/*.proto`. Los contenedores generan sus stubs Python desde estos archivos al construirse.
 - `prisma/schema.prisma` conserva el modelo del Hito 1 como referencia; el Gateway y los servicios de Hito 2 no lo usan para acceder a datos.
+- **Hito 3:** RabbitMQ como broker de eventos. El exchange `rentar.events` (topic) conecta productores y consumidores. Al arrancar, `broker-init` declara la topología (colas + dead-letter). Contratos en [docs/eventos/README.md](docs/eventos/README.md) y [docs/eventos/contratos.schema.json](docs/eventos/contratos.schema.json). Helpers en `workers/common/` (workers), `app/messaging.py` de Vehicle/Rental y `src/messaging/rabbitmq.js` (Gateway).
 
 La interfaz web se comunica exclusivamente con el Gateway. El Gateway orquesta las validaciones de cliente, vehículo y período; Rental Service vuelve a comprobar solapamientos al guardar para protegerse de solicitudes concurrentes.
 
@@ -41,6 +42,8 @@ URLs y puertos:
 | Vehicle Service gRPC | `localhost:50051` |
 | Customer Service gRPC | `localhost:50052` |
 | Rental Service gRPC | `localhost:50053` |
+| RabbitMQ (AMQP) | `localhost:5672` |
+| RabbitMQ Management | `http://localhost:15672` |
 | MySQL Customer / Vehicle / Rental | `localhost:3307` / `3308` / `3309` |
 
 Detener los contenedores con `docker compose down`. Los datos persisten en volúmenes Docker. Para borrar también esos datos de desarrollo, usar `docker compose down -v`.
@@ -88,6 +91,15 @@ docker compose exec rental-service python -m pytest /app/tests/test_rental.py
 
 Las pruebas Python son de integración con sus servicios y bases MySQL, por lo que requieren el stack levantado. Antes de entregar, comprobar desde el navegador disponibilidad, altas/gestión de clientes y vehículos según rol, alta de reserva, consulta/cancelación propia y el historial; guardar capturas reales de cada caso.
 
+Para verificar el broker de eventos (Hito 3), con el stack levantado:
+
+```bash
+docker compose run --rm --entrypoint python broker-init smoke_test.py
+docker compose exec vehicle-service python -m app.smoke_broker
+```
+
+El primero declara/usa la topología compartida; el segundo prueba el helper de Vehicle Service. En el panel `http://localhost:15672` (usuario y clave de `RABBITMQ_USER` / `RABBITMQ_PASS`) tienen que verse el exchange `rentar.events`, el DLX `rentar.dlx`, la cola `rentar.dlq` y las colas de cada consumidor. Los flujos de verificación, incorporación externa y mantenimiento los implementan los otros integrantes sobre estos contratos.
+
 ## REST y GraphQL
 
 Las rutas REST del Gateway están montadas en `/api/vehiculos`, `/api/clientes`, `/api/reservas` y `/api/auth`. Las operaciones GraphQL, ejemplos, tipos, permisos, validaciones y errores están documentados en [docs/GRAPHQL.md](docs/GRAPHQL.md). El Gateway también expone SDL introspection en `/graphql`.
@@ -102,10 +114,12 @@ Las rutas REST del Gateway están montadas en `/api/vehiculos`, `/api/clientes`,
 ## Estructura principal
 
 ```text
-src/                         API Gateway Node.js
-services/vehicle-service/    Servicio gRPC Python + vehicle_db
+src/                         API Gateway Node.js (incluye src/messaging/rabbitmq.js)
+services/vehicle-service/    Servicio gRPC Python + vehicle_db + app/messaging.py
 services/customer-service/  Servicio gRPC Python + customer_db + autenticación
-services/rental-service/    Servicio gRPC Python + rental_db
+services/rental-service/    Servicio gRPC Python + rental_db + app/messaging.py
+workers/common/              Topología, helper pika y declaración de colas
+docs/eventos/                Contratos JSON de los eventos del Hito 3
 front/mi-app/                Interfaz React/Vite
 prisma/schema.prisma         Referencia del modelo Hito 1
 ```
