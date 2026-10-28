@@ -9,6 +9,12 @@ load_dotenv()
 
 from app.generated import vehicle_pb2_grpc
 from app.service import VehicleServiceServicer
+from app.messaging import (
+    COLA_INCORPORACIONES_COMPLETADAS,
+    EVENTO_EXTERNO_COMPLETADO,
+    EventBus,
+    procesar_incorporacion_completada,
+)
 
 def serve():
     alembic_config = Config(os.path.join(os.path.dirname(__file__), "..", "alembic.ini"))
@@ -16,6 +22,11 @@ def serve():
     port = os.getenv("PORT", "50051")
     server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
     vehicle_pb2_grpc.add_VehicleServiceServicer_to_server(VehicleServiceServicer(), server)
+    EventBus().start_consumer(
+        COLA_INCORPORACIONES_COMPLETADAS,
+        EVENTO_EXTERNO_COMPLETADO,
+        procesar_incorporacion_completada,
+    )
     
     if server.add_insecure_port(f'[::]:{port}') == 0:
         raise RuntimeError(f"No se pudo abrir el puerto gRPC {port}")

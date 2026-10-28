@@ -10,6 +10,7 @@ import ReservasPagina from './pages/ReservasPagina';
 import HistorialPagina from './pages/HistorialPagina';
 import VehiculosPagina from './pages/VehiculosPagina';
 import ClientesPagina from './pages/ClientesPagina';
+import VehiculosExternosPagina from './pages/VehiculosExternosPagina';
 
 function RutasProtegidas() {
   return (
@@ -21,6 +22,7 @@ function RutasProtegidas() {
           <Route path="/reservar" element={<NuevaReservaPagina />} />
           <Route path="/mis-reservas" element={<ReservasPagina />} />
           <Route path="/historial" element={<HistorialPagina />} />
+          <Route path="/mis-vehiculos-externos" element={<RutaProtegida roles={['CLIENTE']}><VehiculosExternosPagina /></RutaProtegida>} />
           <Route path="/admin/vehiculos" element={<RutaProtegida roles={['ADMIN']}><VehiculosPagina /></RutaProtegida>} />
           <Route path="/admin/clientes" element={<RutaProtegida roles={['ADMIN']}><ClientesPagina /></RutaProtegida>} />
           <Route path="*" element={<DisponibilidadPagina />} />

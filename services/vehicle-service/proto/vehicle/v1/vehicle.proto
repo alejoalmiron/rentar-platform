@@ -47,6 +47,11 @@ service VehicleService {
   // (por ejemplo, no está inhabilitado por una verificación de patente).
   // Errores: NOT_FOUND si no existe o fue dado de baja.
   rpc VerificarOperatividad(VerificarOperatividadRequest) returns (VerificarOperatividadResponse);
+  // Registra un vehículo externo pendiente de validación.
+  rpc CrearVehiculoExterno(CrearVehiculoExternoRequest) returns (CrearVehiculoExternoResponse);
+
+  // Lista los vehículos externos de un cliente.
+  rpc ListarVehiculosExternos(ListarVehiculosExternosRequest) returns (ListarVehiculosExternosResponse);
 }
 
 // Tipos de vehículo admitidos por la flota.
@@ -200,4 +205,77 @@ message VerificarOperatividadRequest {
 message VerificarOperatividadResponse {
   // true si el vehículo puede participar de nuevas operaciones.
   bool operativo = 1;
+}
+// Estado del proceso de incorporación de un vehículo externo.
+enum EstadoIncorporacion {
+  // Valor por defecto no válido para negocio.
+  ESTADO_INCORPORACION_UNSPECIFIED = 0;
+  // Espera los resultados de validación.
+  ESTADO_INCORPORACION_PENDIENTE = 1;
+  // Fue incorporado a la flota.
+  ESTADO_INCORPORACION_DISPONIBLE = 2;
+  // Alguna validación fue rechazada.
+  ESTADO_INCORPORACION_RECHAZADO = 3;
+}
+
+// Solicitud de CrearVehiculoExterno.
+message CrearVehiculoExternoRequest {
+  // Identificador de correlación opcional.
+  string vehiculo_externo_id = 1;
+  // Identificador UUID del cliente titular.
+  string cliente_id = 2;
+  // Marca del vehículo.
+  string marca = 3;
+  // Modelo del vehículo.
+  string modelo = 4;
+  // Patente del vehículo.
+  string patente = 5;
+  // Año de fabricación.
+  int32 anio = 6;
+  // Color del vehículo.
+  string color = 7;
+  // Tipo del vehículo.
+  TipoVehiculo tipo = 8;
+}
+
+// Respuesta de CrearVehiculoExterno.
+message CrearVehiculoExternoResponse {
+  // Vehículo externo pendiente de validación.
+  VehiculoExterno vehiculo = 1;
+}
+
+// Vehículo externo durante su incorporación.
+message VehiculoExterno {
+  // Identificador interno.
+  int32 id = 1;
+  // Identificador de correlación.
+  string vehiculo_externo_id = 2;
+  // Identificador UUID del cliente titular.
+  string cliente_id = 3;
+  // Marca del vehículo.
+  string marca = 4;
+  // Modelo del vehículo.
+  string modelo = 5;
+  // Patente del vehículo.
+  string patente = 6;
+  // Año de fabricación.
+  int32 anio = 7;
+  // Color del vehículo.
+  string color = 8;
+  // Tipo del vehículo.
+  TipoVehiculo tipo = 9;
+  // Estado de incorporación.
+  EstadoIncorporacion estado = 10;
+}
+
+// Solicitud de ListarVehiculosExternos.
+message ListarVehiculosExternosRequest {
+  // Identificador UUID del cliente.
+  string cliente_id = 1;
+}
+
+// Respuesta de ListarVehiculosExternos.
+message ListarVehiculosExternosResponse {
+  // Vehículos externos del cliente.
+  repeated VehiculoExterno vehiculos = 1;
 }

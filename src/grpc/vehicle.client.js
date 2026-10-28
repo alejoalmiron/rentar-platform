@@ -134,4 +134,25 @@ export const vehicleClient = {
       operativo: response.operativo,
     };
   },
+
+  async createExternal(payload) {
+    const response = await callGrpc('vehicle', 'CrearVehiculoExterno', {
+      vehiculoExternoId: payload.vehiculoExternoId || '',
+      clienteId: String(payload.clienteId),
+      marca: payload.marca,
+      modelo: payload.modelo,
+      patente: payload.patente,
+      anio: payload.anio || 0,
+      color: payload.color || '',
+      tipo: toProtoEnum('TIPO_VEHICULO', payload.tipo),
+    });
+    return response.vehiculo;
+  },
+
+  async listExternal(clienteId) {
+    const response = await callGrpc('vehicle', 'ListarVehiculosExternos', {
+      clienteId: String(clienteId),
+    });
+    return response.vehiculos || [];
+  },
 };

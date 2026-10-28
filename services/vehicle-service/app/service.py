@@ -1,9 +1,9 @@
 import grpc
 from sqlalchemy.exc import IntegrityError
 
-from . import repository
 from .db import SessionLocal
 from .generated import vehicle_pb2, vehicle_pb2_grpc
+from . import external_repository, repository
 
 TIPOS_VALIDOS = {"SEDAN", "SUV", "PICKUP", "COUPE", "HATCHBACK"}
 ESTADOS_VALIDOS = {"DISPONIBLE", "RESERVADO", "EN_ALQUILER"}
@@ -130,3 +130,64 @@ class VehicleServiceServicer(vehicle_pb2_grpc.VehicleServiceServicer):
         if not v:
             context.abort(grpc.StatusCode.NOT_FOUND, "Vehículo no encontrado")
         return vehicle_pb2.VerificarOperatividadResponse(operativo=v.operativo)
+    
+    def _to_proto_externo(self, vehicle):
+        return vehicle_pb2.VehiculoExterno(
+            id=vehicle.id,
+            vehiculo_externo_id=vehicle.vehiculo_externo_id,
+            cliente_id=vehicle.cliente_id,
+            marca=vehicle.marca,
+            modelo=vehicle.modelo,
+            patente=vehicle.patente,
+            anio=vehicle.anio or 0,
+            color=vehicle.color or "",
+            tipo=_texto_a_enum(vehicle_pb2.TipoVehiculo, "TIPO_VEHICULO_", vehicle.tipo or ""),
+            estado=_texto_a_enum(vehicle_pb2.EstadoIncorporacion, "ESTADO_INCORPORACION_", vehicle.estado),
+        )
+
+    def CrearVehiculoExterno(self, request, context):
+        data = {
+            "vehiculo_externo_id": request.vehiculo_externo_id.strip(),
+            "cliente_id": request.cliente_id.strip(),
+            "marca": request.marca.strip(),
+            "modelo": request.modelo.strip(),
+            "patente": request.patente.strip().upper(),
+            "anio": request.anio if request.anio > 0 else None,
+            "color": request.color.strip() or None,
+            "tipo": _enum_a_texto(vehicle_pb2.TipoVehiculo, "TIPO_VEHICULO_", request.tipo),
+            "estado": "PENDIENTE",
+        }
+
+        if (not data["cliente_id"] or data["tipo"] not in TIPOS_VALIDOS
+                or not data["marca"] or not data["modelo"] or not data["patente"]):
+            context.abort(grpc.StatusCode.INVALID_ARGUMENT, "Los datos obligatorios del vehículo externo son inválidos")
+
+        db = SessionLocal()
+        try:
+            v = external_repository.create(db, data)
+        except IntegrityError:
+            db.rollback()
+            context.abort(grpc.StatusCode.ALREADY_EXISTS, "La patente o el ID externo ya están registrados")
+        finally:
+            db.close()
+
+        from .messaging import EVENTO_EXTERNO_REGISTRADO, EventBus
+        EventBus().publish(EVENTO_EXTERNO_REGISTRADO, {
+            "vehiculoExternoId": v.id,
+            "clienteId": v.cliente_id,
+            "patente": v.patente,
+        })
+        return vehicle_pb2.CrearVehiculoExternoResponse(vehiculo=self._to_proto_externo(v))
+
+    def ListarVehiculosExternos(self, request, context):
+        cliente_id = request.cliente_id.strip()
+        if not cliente_id:
+            context.abort(grpc.StatusCode.INVALID_ARGUMENT, "El cliente es obligatorio")
+        db = SessionLocal()
+        try:
+            vehicles = external_repository.get_by_client_id(db, cliente_id)
+        finally:
+            db.close()
+        return vehicle_pb2.ListarVehiculosExternosResponse(
+            vehiculos=[self._to_proto_externo(vehicle) for vehicle in vehicles],
+        )

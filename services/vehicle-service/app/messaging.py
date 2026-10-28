@@ -113,3 +113,19 @@ class EventBus:
     def close(self):
         if self._connection and not self._connection.is_closed:
             self._connection.close()
+
+
+def procesar_incorporacion_completada(evento):
+    from .db import SessionLocal
+    from . import external_repository
+
+    vehiculo_externo_id = evento.get("vehiculoExternoId")
+    if not vehiculo_externo_id:
+        raise ValueError("Falta vehiculo_externo_id en el evento de incorporación")
+
+    db = SessionLocal()
+    try:
+        if not external_repository.incorporate(db, str(vehiculo_externo_id)):
+            raise ValueError(f"Vehículo externo no encontrado: {vehiculo_externo_id}")
+    finally:
+        db.close()
