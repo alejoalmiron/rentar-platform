@@ -39,6 +39,11 @@ export async function consumirEndpoint(url, opciones = {}) {
 // --- SERVICIOS REST ---
 export const getVehiculos = () => consumirEndpoint(`${URL_BASE_REST}/vehiculos`);
 export const crearVehiculo = (data) => consumirEndpoint(`${URL_BASE_REST}/vehiculos`, { method: 'POST', body: JSON.stringify(data) });
+export const getVehiculosExternos = () => consumirEndpoint(`${URL_BASE_REST}/vehiculos-externos`);
+export const crearVehiculoExterno = (data) => consumirEndpoint(`${URL_BASE_REST}/vehiculos-externos`, {
+  method: 'POST',
+  body: JSON.stringify(data),
+});
 
 export const getClientes = () => consumirEndpoint(`${URL_BASE_REST}/clientes`);
 export const crearCliente = (data) => consumirEndpoint(`${URL_BASE_REST}/clientes`, { method: 'POST', body: JSON.stringify(data) });

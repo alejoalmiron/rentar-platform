@@ -12,6 +12,9 @@ export default function Navegacion() {
     { path: '/mis-reservas', label: 'Mis Reservas' },
     { path: '/historial', label: 'Historial' },
   ];
+  if (user?.role === 'CLIENTE') {
+    enlacesComunes.push({ path: '/mis-vehiculos-externos', label: 'Mis vehículos' });
+  }
   const enlaces = user?.role === 'ADMIN'
     ? [...enlacesComunes, { path: '/admin/vehiculos', label: 'Vehículos (ABM)' }, { path: '/admin/clientes', label: 'Clientes (ABM)' }]
     : enlacesComunes;

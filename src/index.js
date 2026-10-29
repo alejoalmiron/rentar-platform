@@ -10,7 +10,7 @@ import vehiculoRoutes from './routes/vehiculo.routes.js';
 import clienteRoutes from './routes/cliente.routes.js';
 
 import reservaRoutes from './routes/reserva.routes.js';
-
+import vehiculoExternoRoutes from './routes/vehiculoExterno.routes.js';
 
 // GraphQL
 import { ApolloServer } from '@apollo/server';
@@ -33,6 +33,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/vehiculos', vehiculoRoutes);
 app.use('/api/clientes', clienteRoutes);
 app.use('/api/reservas', reservaRoutes);
+app.use('/api', vehiculoExternoRoutes);
 
 app.get('/', (req, res) => {
   res.json({ mensaje: 'API Rentar funcionando correctamente' });
@@ -72,3 +73,4 @@ for (const signal of ['SIGINT', 'SIGTERM']) {
     });
   });
 }
+

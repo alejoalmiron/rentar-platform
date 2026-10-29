@@ -93,6 +93,51 @@ services:
       broker-init:
         condition: service_completed_successfully
 
+  validador-patente:
+    build:
+      context: .
+      dockerfile: workers/Dockerfile.runtime
+    command: ["python", "workers/validador_patente_worker.py"]
+    environment:
+      RABBITMQ_URL: amqp://${RABBITMQ_USER}:${RABBITMQ_PASS}@rabbitmq:5672
+      PYTHONUNBUFFERED: 1
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      broker-init:
+        condition: service_completed_successfully
+
+  validador-titularidad:
+    build:
+      context: .
+      dockerfile: workers/Dockerfile.runtime
+    command: ["python", "workers/validador_titularidad_worker.py"]
+    environment:
+      RABBITMQ_URL: amqp://${RABBITMQ_USER}:${RABBITMQ_PASS}@rabbitmq:5672
+      PYTHONUNBUFFERED: 1
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      broker-init:
+        condition: service_completed_successfully
+
+  correlador-externos:
+    build:
+      context: .
+      dockerfile: workers/Dockerfile.runtime
+    command: ["python", "workers/correlador_externos_worker.py"]
+    environment:
+      DATABASE_URL: mysql+pymysql://root:${MYSQL_ROOT_PASSWORD:?Set MYSQL_ROOT_PASSWORD in .env}@vehicle-db:3306/vehicle_db
+      RABBITMQ_URL: amqp://${RABBITMQ_USER}:${RABBITMQ_PASS}@rabbitmq:5672
+      PYTHONUNBUFFERED: 1
+    depends_on:
+      vehicle-db:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      broker-init:
+        condition: service_completed_successfully
+
   customer-service:
     build: ./services/customer-service
     environment:

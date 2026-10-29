@@ -5,7 +5,7 @@ import warnings
 
 import vehicle_pb2 as vehicle__pb2
 
-GRPC_GENERATED_VERSION = '1.66.1'
+GRPC_GENERATED_VERSION = '1.84.0'
 GRPC_VERSION = grpc.__version__
 _version_not_supported = False
 
@@ -18,14 +18,14 @@ except ImportError:
 if _version_not_supported:
     raise RuntimeError(
         f'The grpc package installed is at version {GRPC_VERSION},'
-        + f' but the generated code in vehicle_pb2_grpc.py depends on'
+        + ' but the generated code in vehicle_pb2_grpc.py depends on'
         + f' grpcio>={GRPC_GENERATED_VERSION}.'
         + f' Please upgrade your grpc module to grpcio>={GRPC_GENERATED_VERSION}'
         + f' or downgrade your generated code using grpcio-tools<={GRPC_VERSION}.'
     )
 
 
-class VehicleServiceStub(object):
+class VehicleServiceStub:
     """VehicleService administra la flota de Rentar: alta, modificación, baja
     lógica y consulta de vehículos, y la verificación de que un vehículo pueda
     participar de nuevas operaciones. Es el único dueño de la base vehicle_db.
@@ -67,9 +67,19 @@ class VehicleServiceStub(object):
                 request_serializer=vehicle__pb2.VerificarOperatividadRequest.SerializeToString,
                 response_deserializer=vehicle__pb2.VerificarOperatividadResponse.FromString,
                 _registered_method=True)
+        self.CrearVehiculoExterno = channel.unary_unary(
+                '/vehicle.v1.VehicleService/CrearVehiculoExterno',
+                request_serializer=vehicle__pb2.CrearVehiculoExternoRequest.SerializeToString,
+                response_deserializer=vehicle__pb2.CrearVehiculoExternoResponse.FromString,
+                _registered_method=True)
+        self.ListarVehiculosExternos = channel.unary_unary(
+                '/vehicle.v1.VehicleService/ListarVehiculosExternos',
+                request_serializer=vehicle__pb2.ListarVehiculosExternosRequest.SerializeToString,
+                response_deserializer=vehicle__pb2.ListarVehiculosExternosResponse.FromString,
+                _registered_method=True)
 
 
-class VehicleServiceServicer(object):
+class VehicleServiceServicer:
     """VehicleService administra la flota de Rentar: alta, modificación, baja
     lógica y consulta de vehículos, y la verificación de que un vehículo pueda
     participar de nuevas operaciones. Es el único dueño de la base vehicle_db.
@@ -128,6 +138,20 @@ class VehicleServiceServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
+    def CrearVehiculoExterno(self, request, context):
+        """Registra un vehículo externo pendiente de validación.
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def ListarVehiculosExternos(self, request, context):
+        """Lista los vehículos externos de un cliente.
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
 
 def add_VehicleServiceServicer_to_server(servicer, server):
     rpc_method_handlers = {
@@ -161,6 +185,16 @@ def add_VehicleServiceServicer_to_server(servicer, server):
                     request_deserializer=vehicle__pb2.VerificarOperatividadRequest.FromString,
                     response_serializer=vehicle__pb2.VerificarOperatividadResponse.SerializeToString,
             ),
+            'CrearVehiculoExterno': grpc.unary_unary_rpc_method_handler(
+                    servicer.CrearVehiculoExterno,
+                    request_deserializer=vehicle__pb2.CrearVehiculoExternoRequest.FromString,
+                    response_serializer=vehicle__pb2.CrearVehiculoExternoResponse.SerializeToString,
+            ),
+            'ListarVehiculosExternos': grpc.unary_unary_rpc_method_handler(
+                    servicer.ListarVehiculosExternos,
+                    request_deserializer=vehicle__pb2.ListarVehiculosExternosRequest.FromString,
+                    response_serializer=vehicle__pb2.ListarVehiculosExternosResponse.SerializeToString,
+            ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
             'vehicle.v1.VehicleService', rpc_method_handlers)
@@ -169,7 +203,7 @@ def add_VehicleServiceServicer_to_server(servicer, server):
 
 
  # This class is part of an EXPERIMENTAL API.
-class VehicleService(object):
+class VehicleService:
     """VehicleService administra la flota de Rentar: alta, modificación, baja
     lógica y consulta de vehículos, y la verificación de que un vehículo pueda
     participar de nuevas operaciones. Es el único dueño de la base vehicle_db.
@@ -327,6 +361,60 @@ class VehicleService(object):
             '/vehicle.v1.VehicleService/VerificarOperatividad',
             vehicle__pb2.VerificarOperatividadRequest.SerializeToString,
             vehicle__pb2.VerificarOperatividadResponse.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def CrearVehiculoExterno(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/vehicle.v1.VehicleService/CrearVehiculoExterno',
+            vehicle__pb2.CrearVehiculoExternoRequest.SerializeToString,
+            vehicle__pb2.CrearVehiculoExternoResponse.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def ListarVehiculosExternos(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/vehicle.v1.VehicleService/ListarVehiculosExternos',
+            vehicle__pb2.ListarVehiculosExternosRequest.SerializeToString,
+            vehicle__pb2.ListarVehiculosExternosResponse.FromString,
             options,
             channel_credentials,
             insecure,
