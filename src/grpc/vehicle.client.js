@@ -44,7 +44,7 @@ function filterVehicles(vehicles, filters) {
   const supportedFilters = new Set([
     'marca', 'modelo', 'patente', 'operativo', 'activo', 'tipo', 'precioMin', 'precioMax',
   ]);
-  const entries = Object.entries(filters).filter(([, value]) => value !== undefined && value !== '');
+  const entries = Object.entries(filters).filter(([, value]) => value !== undefined && value !== null && value !== '');
   const unsupportedFilter = entries.find(([key]) => !supportedFilters.has(key));
   if (unsupportedFilter) {
     const error = new Error(`El filtro ${unsupportedFilter[0]} no está soportado por el servicio de Vehículos`);

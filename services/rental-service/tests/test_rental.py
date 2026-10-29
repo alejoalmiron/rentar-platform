@@ -28,7 +28,8 @@ def ts(year, month, day):
 def limpiar_db():
     db = SessionLocal()
     try:
-        db.query(RentalModel).delete()
+        # Solo las reservas de prueba: los tests corren contra la base del stack.
+        db.query(RentalModel).filter(RentalModel.vehiculo_id.like("vehiculo-test-%")).delete(synchronize_session=False)
         db.commit()
     finally:
         db.close()

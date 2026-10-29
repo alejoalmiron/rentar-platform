@@ -28,8 +28,13 @@ class RentalRepository:
     @staticmethod
     def crear_renta(db: Session, datos_renta: dict) -> RentalModel:
         lock_name = f"rentar:vehicle:{datos_renta['vehiculoId']}"
-        acquired = db.execute(text("SELECT GET_LOCK(:lock_name, 10)"), {"lock_name": lock_name}).scalar()
+        # GET_LOCK pertenece a la conexión que lo toma. El commit de la sesión
+        # devuelve su conexión al pool, así que el lock usa una conexión propia
+        # para poder liberarlo siempre desde la misma.
+        lock_conn = db.get_bind().connect()
+        acquired = lock_conn.execute(text("SELECT GET_LOCK(:lock_name, 10)"), {"lock_name": lock_name}).scalar()
         if acquired != 1:
+            lock_conn.close()
             raise TimeoutError("No se pudo bloquear el vehículo para confirmar disponibilidad")
 
         try:
@@ -58,8 +63,8 @@ class RentalRepository:
             db.rollback()
             raise
         finally:
-            db.execute(text("SELECT RELEASE_LOCK(:lock_name)"), {"lock_name": lock_name})
-            db.commit()
+            lock_conn.execute(text("SELECT RELEASE_LOCK(:lock_name)"), {"lock_name": lock_name})
+            lock_conn.close()
 
     @staticmethod
     def obtener_renta(db: Session, renta_id: str) -> RentalModel:

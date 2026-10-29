@@ -54,15 +54,17 @@ def test_update_customer(grpc_channel):
     assert test_state["created_id"] is not None
     
     stub = grpc_channel
+    # Email único por ejecución: el servicio rechaza emails duplicados.
+    nuevo_email = f"carlos.alberto.{test_state['created_id'][:8]}@example.com"
     updated = stub.ActualizarCliente(pb2.ActualizarClienteRequest(
         id=test_state["created_id"],
         nombre="Carlos Alberto",
         apellido="Gómez",
-        email="carlos.alberto@example.com"
+        email=nuevo_email
     )).cliente
 
     assert updated.nombre == "Carlos Alberto"
-    assert updated.email == "carlos.alberto@example.com"
+    assert updated.email == nuevo_email
 
 def test_list_customers(grpc_channel):
     stub = grpc_channel
