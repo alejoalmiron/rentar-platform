@@ -206,4 +206,4 @@ prisma/schema.prisma          Modelo de datos del Hito 1 (referencia histórica,
 | Gabriel Omar Romero | [@GabrielOmarRomero](https://github.com/GabrielOmarRomero) |
 | Juan Cruz Lendoiro | [@JuanCruzLendoiro](https://github.com/JuanCruzLendoiro) |
 | Brian Avila | [@BrianAvila-UNLA](https://github.com/BrianAvila-UNLA) |
-| — | [@ttomi03](https://github.com/ttomi03) |
+| Tomas Palma | [@ttomi03](https://github.com/ttomi03) |
