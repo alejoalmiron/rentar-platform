@@ -5,7 +5,7 @@ import warnings
 
 from rental.v1 import rental_pb2 as rental_dot_v1_dot_rental__pb2
 
-GRPC_GENERATED_VERSION = '1.84.0'
+GRPC_GENERATED_VERSION = '1.66.1'
 GRPC_VERSION = grpc.__version__
 _version_not_supported = False
 
@@ -18,15 +18,18 @@ except ImportError:
 if _version_not_supported:
     raise RuntimeError(
         f'The grpc package installed is at version {GRPC_VERSION},'
-        + ' but the generated code in rental/v1/rental_pb2_grpc.py depends on'
+        + f' but the generated code in rental/v1/rental_pb2_grpc.py depends on'
         + f' grpcio>={GRPC_GENERATED_VERSION}.'
         + f' Please upgrade your grpc module to grpcio>={GRPC_GENERATED_VERSION}'
         + f' or downgrade your generated code using grpcio-tools<={GRPC_VERSION}.'
     )
 
 
-class RentalServiceStub:
-    """Missing associated documentation comment in .proto file."""
+class RentalServiceStub(object):
+    """RentalService gestiona el ciclo de vida de las reservas de vehículos:
+    creación con control de disponibilidad, consulta, cancelación e historial.
+    Es el único dueño de la base rental_db.
+    """
 
     def __init__(self, channel):
         """Constructor.
@@ -37,27 +40,27 @@ class RentalServiceStub:
         self.CrearRenta = channel.unary_unary(
                 '/rental.v1.RentalService/CrearRenta',
                 request_serializer=rental_dot_v1_dot_rental__pb2.CrearRentaRequest.SerializeToString,
-                response_deserializer=rental_dot_v1_dot_rental__pb2.RentaResponse.FromString,
+                response_deserializer=rental_dot_v1_dot_rental__pb2.CrearRentaResponse.FromString,
                 _registered_method=True)
         self.ObtenerRenta = channel.unary_unary(
                 '/rental.v1.RentalService/ObtenerRenta',
                 request_serializer=rental_dot_v1_dot_rental__pb2.ObtenerRentaRequest.SerializeToString,
-                response_deserializer=rental_dot_v1_dot_rental__pb2.RentaResponse.FromString,
+                response_deserializer=rental_dot_v1_dot_rental__pb2.ObtenerRentaResponse.FromString,
                 _registered_method=True)
         self.ListarRentasPorCliente = channel.unary_unary(
                 '/rental.v1.RentalService/ListarRentasPorCliente',
                 request_serializer=rental_dot_v1_dot_rental__pb2.ListarRentasPorClienteRequest.SerializeToString,
-                response_deserializer=rental_dot_v1_dot_rental__pb2.ListarRentasResponse.FromString,
+                response_deserializer=rental_dot_v1_dot_rental__pb2.ListarRentasPorClienteResponse.FromString,
                 _registered_method=True)
         self.CancelarRenta = channel.unary_unary(
                 '/rental.v1.RentalService/CancelarRenta',
                 request_serializer=rental_dot_v1_dot_rental__pb2.CancelarRentaRequest.SerializeToString,
-                response_deserializer=rental_dot_v1_dot_rental__pb2.RentaResponse.FromString,
+                response_deserializer=rental_dot_v1_dot_rental__pb2.CancelarRentaResponse.FromString,
                 _registered_method=True)
         self.ObtenerHistorialRentas = channel.unary_unary(
                 '/rental.v1.RentalService/ObtenerHistorialRentas',
                 request_serializer=rental_dot_v1_dot_rental__pb2.ObtenerHistorialRentasRequest.SerializeToString,
-                response_deserializer=rental_dot_v1_dot_rental__pb2.ListarRentasResponse.FromString,
+                response_deserializer=rental_dot_v1_dot_rental__pb2.ObtenerHistorialRentasResponse.FromString,
                 _registered_method=True)
         self.VerificarSolapamiento = channel.unary_unary(
                 '/rental.v1.RentalService/VerificarSolapamiento',
@@ -66,41 +69,66 @@ class RentalServiceStub:
                 _registered_method=True)
 
 
-class RentalServiceServicer:
-    """Missing associated documentation comment in .proto file."""
+class RentalServiceServicer(object):
+    """RentalService gestiona el ciclo de vida de las reservas de vehículos:
+    creación con control de disponibilidad, consulta, cancelación e historial.
+    Es el único dueño de la base rental_db.
+    """
 
     def CrearRenta(self, request, context):
-        """Missing associated documentation comment in .proto file."""
+        """Crea una reserva en estado ESTADO_RENTA_CONFIRMADA. Calcula el importe
+        total como días de alquiler (redondeados hacia arriba) por precio diario.
+        Bloquea el vehículo durante la operación para evitar reservas solapadas
+        concurrentes.
+        Errores: INVALID_ARGUMENT si faltan datos, la fecha de inicio no es futura,
+        la fecha de fin no es posterior al inicio o el precio diario no es
+        positivo; ALREADY_EXISTS si el vehículo ya tiene una reserva confirmada
+        que se superpone; UNAVAILABLE si no se pudo bloquear el vehículo.
+        """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
     def ObtenerRenta(self, request, context):
-        """Missing associated documentation comment in .proto file."""
+        """Obtiene una reserva por id.
+        Errores: NOT_FOUND si no existe.
+        """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
     def ListarRentasPorCliente(self, request, context):
-        """Missing associated documentation comment in .proto file."""
+        """Lista todas las reservas de un cliente, en cualquier estado.
+        """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
     def CancelarRenta(self, request, context):
-        """Missing associated documentation comment in .proto file."""
+        """Cancela una reserva cambiando su estado a ESTADO_RENTA_CANCELADA; el
+        registro no se elimina. Una reserva cancelada libera el período para que
+        el vehículo pueda volver a reservarse.
+        Errores: NOT_FOUND si no existe; FAILED_PRECONDITION si ya estaba
+        cancelada o si el período de alquiler ya comenzó.
+        """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
     def ObtenerHistorialRentas(self, request, context):
-        """Missing associated documentation comment in .proto file."""
+        """Devuelve el historial de reservas ordenado por fecha de inicio
+        descendente, incluyendo alquileres finalizados y reservas canceladas.
+        """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
     def VerificarSolapamiento(self, request, context):
-        """Missing associated documentation comment in .proto file."""
+        """Indica si un vehículo tiene alguna reserva confirmada que se superpone con
+        el período solicitado. Las reservas canceladas no se consideran.
+        Errores: INVALID_ARGUMENT si el período es inválido (mismas reglas que
+        CrearRenta).
+        """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
@@ -111,27 +139,27 @@ def add_RentalServiceServicer_to_server(servicer, server):
             'CrearRenta': grpc.unary_unary_rpc_method_handler(
                     servicer.CrearRenta,
                     request_deserializer=rental_dot_v1_dot_rental__pb2.CrearRentaRequest.FromString,
-                    response_serializer=rental_dot_v1_dot_rental__pb2.RentaResponse.SerializeToString,
+                    response_serializer=rental_dot_v1_dot_rental__pb2.CrearRentaResponse.SerializeToString,
             ),
             'ObtenerRenta': grpc.unary_unary_rpc_method_handler(
                     servicer.ObtenerRenta,
                     request_deserializer=rental_dot_v1_dot_rental__pb2.ObtenerRentaRequest.FromString,
-                    response_serializer=rental_dot_v1_dot_rental__pb2.RentaResponse.SerializeToString,
+                    response_serializer=rental_dot_v1_dot_rental__pb2.ObtenerRentaResponse.SerializeToString,
             ),
             'ListarRentasPorCliente': grpc.unary_unary_rpc_method_handler(
                     servicer.ListarRentasPorCliente,
                     request_deserializer=rental_dot_v1_dot_rental__pb2.ListarRentasPorClienteRequest.FromString,
-                    response_serializer=rental_dot_v1_dot_rental__pb2.ListarRentasResponse.SerializeToString,
+                    response_serializer=rental_dot_v1_dot_rental__pb2.ListarRentasPorClienteResponse.SerializeToString,
             ),
             'CancelarRenta': grpc.unary_unary_rpc_method_handler(
                     servicer.CancelarRenta,
                     request_deserializer=rental_dot_v1_dot_rental__pb2.CancelarRentaRequest.FromString,
-                    response_serializer=rental_dot_v1_dot_rental__pb2.RentaResponse.SerializeToString,
+                    response_serializer=rental_dot_v1_dot_rental__pb2.CancelarRentaResponse.SerializeToString,
             ),
             'ObtenerHistorialRentas': grpc.unary_unary_rpc_method_handler(
                     servicer.ObtenerHistorialRentas,
                     request_deserializer=rental_dot_v1_dot_rental__pb2.ObtenerHistorialRentasRequest.FromString,
-                    response_serializer=rental_dot_v1_dot_rental__pb2.ListarRentasResponse.SerializeToString,
+                    response_serializer=rental_dot_v1_dot_rental__pb2.ObtenerHistorialRentasResponse.SerializeToString,
             ),
             'VerificarSolapamiento': grpc.unary_unary_rpc_method_handler(
                     servicer.VerificarSolapamiento,
@@ -146,8 +174,11 @@ def add_RentalServiceServicer_to_server(servicer, server):
 
 
  # This class is part of an EXPERIMENTAL API.
-class RentalService:
-    """Missing associated documentation comment in .proto file."""
+class RentalService(object):
+    """RentalService gestiona el ciclo de vida de las reservas de vehículos:
+    creación con control de disponibilidad, consulta, cancelación e historial.
+    Es el único dueño de la base rental_db.
+    """
 
     @staticmethod
     def CrearRenta(request,
@@ -165,7 +196,7 @@ class RentalService:
             target,
             '/rental.v1.RentalService/CrearRenta',
             rental_dot_v1_dot_rental__pb2.CrearRentaRequest.SerializeToString,
-            rental_dot_v1_dot_rental__pb2.RentaResponse.FromString,
+            rental_dot_v1_dot_rental__pb2.CrearRentaResponse.FromString,
             options,
             channel_credentials,
             insecure,
@@ -192,7 +223,7 @@ class RentalService:
             target,
             '/rental.v1.RentalService/ObtenerRenta',
             rental_dot_v1_dot_rental__pb2.ObtenerRentaRequest.SerializeToString,
-            rental_dot_v1_dot_rental__pb2.RentaResponse.FromString,
+            rental_dot_v1_dot_rental__pb2.ObtenerRentaResponse.FromString,
             options,
             channel_credentials,
             insecure,
@@ -219,7 +250,7 @@ class RentalService:
             target,
             '/rental.v1.RentalService/ListarRentasPorCliente',
             rental_dot_v1_dot_rental__pb2.ListarRentasPorClienteRequest.SerializeToString,
-            rental_dot_v1_dot_rental__pb2.ListarRentasResponse.FromString,
+            rental_dot_v1_dot_rental__pb2.ListarRentasPorClienteResponse.FromString,
             options,
             channel_credentials,
             insecure,
@@ -246,7 +277,7 @@ class RentalService:
             target,
             '/rental.v1.RentalService/CancelarRenta',
             rental_dot_v1_dot_rental__pb2.CancelarRentaRequest.SerializeToString,
-            rental_dot_v1_dot_rental__pb2.RentaResponse.FromString,
+            rental_dot_v1_dot_rental__pb2.CancelarRentaResponse.FromString,
             options,
             channel_credentials,
             insecure,
@@ -273,7 +304,7 @@ class RentalService:
             target,
             '/rental.v1.RentalService/ObtenerHistorialRentas',
             rental_dot_v1_dot_rental__pb2.ObtenerHistorialRentasRequest.SerializeToString,
-            rental_dot_v1_dot_rental__pb2.ListarRentasResponse.FromString,
+            rental_dot_v1_dot_rental__pb2.ObtenerHistorialRentasResponse.FromString,
             options,
             channel_credentials,
             insecure,

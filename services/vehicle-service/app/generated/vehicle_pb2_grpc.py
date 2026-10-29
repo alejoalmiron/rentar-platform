@@ -3,9 +3,9 @@
 import grpc
 import warnings
 
-from . import vehicle_pb2 as vehicle__pb2
+import vehicle_pb2 as vehicle__pb2
 
-GRPC_GENERATED_VERSION = '1.84.0'
+GRPC_GENERATED_VERSION = '1.66.1'
 GRPC_VERSION = grpc.__version__
 _version_not_supported = False
 
@@ -18,15 +18,18 @@ except ImportError:
 if _version_not_supported:
     raise RuntimeError(
         f'The grpc package installed is at version {GRPC_VERSION},'
-        + ' but the generated code in vehicle/v1/vehicle_pb2_grpc.py depends on'
+        + f' but the generated code in vehicle_pb2_grpc.py depends on'
         + f' grpcio>={GRPC_GENERATED_VERSION}.'
         + f' Please upgrade your grpc module to grpcio>={GRPC_GENERATED_VERSION}'
         + f' or downgrade your generated code using grpcio-tools<={GRPC_VERSION}.'
     )
 
 
-class VehicleServiceStub:
-    """Missing associated documentation comment in .proto file."""
+class VehicleServiceStub(object):
+    """VehicleService administra la flota de Rentar: alta, modificación, baja
+    lógica y consulta de vehículos, y la verificación de que un vehículo pueda
+    participar de nuevas operaciones. Es el único dueño de la base vehicle_db.
+    """
 
     def __init__(self, channel):
         """Constructor.
@@ -34,73 +37,93 @@ class VehicleServiceStub:
         Args:
             channel: A grpc.Channel.
         """
-        self.GetVehicles = channel.unary_unary(
-                '/vehicle.v1.VehicleService/GetVehicles',
-                request_serializer=vehicle__pb2.Empty.SerializeToString,
-                response_deserializer=vehicle__pb2.VehicleList.FromString,
+        self.ListarVehiculos = channel.unary_unary(
+                '/vehicle.v1.VehicleService/ListarVehiculos',
+                request_serializer=vehicle__pb2.ListarVehiculosRequest.SerializeToString,
+                response_deserializer=vehicle__pb2.ListarVehiculosResponse.FromString,
                 _registered_method=True)
-        self.GetVehicleById = channel.unary_unary(
-                '/vehicle.v1.VehicleService/GetVehicleById',
-                request_serializer=vehicle__pb2.VehicleIdRequest.SerializeToString,
-                response_deserializer=vehicle__pb2.Vehicle.FromString,
+        self.ObtenerVehiculo = channel.unary_unary(
+                '/vehicle.v1.VehicleService/ObtenerVehiculo',
+                request_serializer=vehicle__pb2.ObtenerVehiculoRequest.SerializeToString,
+                response_deserializer=vehicle__pb2.ObtenerVehiculoResponse.FromString,
                 _registered_method=True)
-        self.CreateVehicle = channel.unary_unary(
-                '/vehicle.v1.VehicleService/CreateVehicle',
-                request_serializer=vehicle__pb2.CreateVehicleRequest.SerializeToString,
-                response_deserializer=vehicle__pb2.Vehicle.FromString,
+        self.CrearVehiculo = channel.unary_unary(
+                '/vehicle.v1.VehicleService/CrearVehiculo',
+                request_serializer=vehicle__pb2.CrearVehiculoRequest.SerializeToString,
+                response_deserializer=vehicle__pb2.CrearVehiculoResponse.FromString,
                 _registered_method=True)
-        self.UpdateVehicle = channel.unary_unary(
-                '/vehicle.v1.VehicleService/UpdateVehicle',
-                request_serializer=vehicle__pb2.UpdateVehicleRequest.SerializeToString,
-                response_deserializer=vehicle__pb2.Vehicle.FromString,
+        self.ActualizarVehiculo = channel.unary_unary(
+                '/vehicle.v1.VehicleService/ActualizarVehiculo',
+                request_serializer=vehicle__pb2.ActualizarVehiculoRequest.SerializeToString,
+                response_deserializer=vehicle__pb2.ActualizarVehiculoResponse.FromString,
                 _registered_method=True)
-        self.DeleteVehicle = channel.unary_unary(
-                '/vehicle.v1.VehicleService/DeleteVehicle',
-                request_serializer=vehicle__pb2.VehicleIdRequest.SerializeToString,
-                response_deserializer=vehicle__pb2.Empty.FromString,
+        self.DarDeBajaVehiculo = channel.unary_unary(
+                '/vehicle.v1.VehicleService/DarDeBajaVehiculo',
+                request_serializer=vehicle__pb2.DarDeBajaVehiculoRequest.SerializeToString,
+                response_deserializer=vehicle__pb2.DarDeBajaVehiculoResponse.FromString,
                 _registered_method=True)
-        self.CheckOperative = channel.unary_unary(
-                '/vehicle.v1.VehicleService/CheckOperative',
-                request_serializer=vehicle__pb2.VehicleIdRequest.SerializeToString,
-                response_deserializer=vehicle__pb2.OperativeResponse.FromString,
+        self.VerificarOperatividad = channel.unary_unary(
+                '/vehicle.v1.VehicleService/VerificarOperatividad',
+                request_serializer=vehicle__pb2.VerificarOperatividadRequest.SerializeToString,
+                response_deserializer=vehicle__pb2.VerificarOperatividadResponse.FromString,
                 _registered_method=True)
 
 
-class VehicleServiceServicer:
-    """Missing associated documentation comment in .proto file."""
+class VehicleServiceServicer(object):
+    """VehicleService administra la flota de Rentar: alta, modificación, baja
+    lógica y consulta de vehículos, y la verificación de que un vehículo pueda
+    participar de nuevas operaciones. Es el único dueño de la base vehicle_db.
+    """
 
-    def GetVehicles(self, request, context):
-        """Missing associated documentation comment in .proto file."""
+    def ListarVehiculos(self, request, context):
+        """Lista los vehículos activos (los dados de baja lógica no se incluyen).
+        """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
-    def GetVehicleById(self, request, context):
-        """Missing associated documentation comment in .proto file."""
+    def ObtenerVehiculo(self, request, context):
+        """Obtiene un vehículo activo por id.
+        Errores: NOT_FOUND si no existe o fue dado de baja.
+        """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
-    def CreateVehicle(self, request, context):
-        """Missing associated documentation comment in .proto file."""
+    def CrearVehiculo(self, request, context):
+        """Registra un vehículo nuevo en la flota. El vehículo queda en estado
+        ESTADO_VEHICULO_DISPONIBLE, activo y operativo.
+        Errores: INVALID_ARGUMENT si faltan datos obligatorios o son inválidos;
+        ALREADY_EXISTS si la patente ya está registrada.
+        """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
-    def UpdateVehicle(self, request, context):
-        """Missing associated documentation comment in .proto file."""
+    def ActualizarVehiculo(self, request, context):
+        """Modifica los datos de un vehículo activo. La patente no forma parte del
+        mensaje porque no puede modificarse una vez registrado el vehículo.
+        Errores: INVALID_ARGUMENT si los datos son inválidos; NOT_FOUND si el
+        vehículo no existe o fue dado de baja.
+        """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
-    def DeleteVehicle(self, request, context):
-        """Missing associated documentation comment in .proto file."""
+    def DarDeBajaVehiculo(self, request, context):
+        """Realiza la baja lógica de un vehículo: el registro se conserva con
+        activo = false y deja de poder usarse para nuevos alquileres.
+        Errores: NOT_FOUND si no existe o ya fue dado de baja.
+        """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
-    def CheckOperative(self, request, context):
-        """Missing associated documentation comment in .proto file."""
+    def VerificarOperatividad(self, request, context):
+        """Indica si el vehículo está habilitado para nuevas operaciones
+        (por ejemplo, no está inhabilitado por una verificación de patente).
+        Errores: NOT_FOUND si no existe o fue dado de baja.
+        """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
@@ -108,35 +131,35 @@ class VehicleServiceServicer:
 
 def add_VehicleServiceServicer_to_server(servicer, server):
     rpc_method_handlers = {
-            'GetVehicles': grpc.unary_unary_rpc_method_handler(
-                    servicer.GetVehicles,
-                    request_deserializer=vehicle__pb2.Empty.FromString,
-                    response_serializer=vehicle__pb2.VehicleList.SerializeToString,
+            'ListarVehiculos': grpc.unary_unary_rpc_method_handler(
+                    servicer.ListarVehiculos,
+                    request_deserializer=vehicle__pb2.ListarVehiculosRequest.FromString,
+                    response_serializer=vehicle__pb2.ListarVehiculosResponse.SerializeToString,
             ),
-            'GetVehicleById': grpc.unary_unary_rpc_method_handler(
-                    servicer.GetVehicleById,
-                    request_deserializer=vehicle__pb2.VehicleIdRequest.FromString,
-                    response_serializer=vehicle__pb2.Vehicle.SerializeToString,
+            'ObtenerVehiculo': grpc.unary_unary_rpc_method_handler(
+                    servicer.ObtenerVehiculo,
+                    request_deserializer=vehicle__pb2.ObtenerVehiculoRequest.FromString,
+                    response_serializer=vehicle__pb2.ObtenerVehiculoResponse.SerializeToString,
             ),
-            'CreateVehicle': grpc.unary_unary_rpc_method_handler(
-                    servicer.CreateVehicle,
-                    request_deserializer=vehicle__pb2.CreateVehicleRequest.FromString,
-                    response_serializer=vehicle__pb2.Vehicle.SerializeToString,
+            'CrearVehiculo': grpc.unary_unary_rpc_method_handler(
+                    servicer.CrearVehiculo,
+                    request_deserializer=vehicle__pb2.CrearVehiculoRequest.FromString,
+                    response_serializer=vehicle__pb2.CrearVehiculoResponse.SerializeToString,
             ),
-            'UpdateVehicle': grpc.unary_unary_rpc_method_handler(
-                    servicer.UpdateVehicle,
-                    request_deserializer=vehicle__pb2.UpdateVehicleRequest.FromString,
-                    response_serializer=vehicle__pb2.Vehicle.SerializeToString,
+            'ActualizarVehiculo': grpc.unary_unary_rpc_method_handler(
+                    servicer.ActualizarVehiculo,
+                    request_deserializer=vehicle__pb2.ActualizarVehiculoRequest.FromString,
+                    response_serializer=vehicle__pb2.ActualizarVehiculoResponse.SerializeToString,
             ),
-            'DeleteVehicle': grpc.unary_unary_rpc_method_handler(
-                    servicer.DeleteVehicle,
-                    request_deserializer=vehicle__pb2.VehicleIdRequest.FromString,
-                    response_serializer=vehicle__pb2.Empty.SerializeToString,
+            'DarDeBajaVehiculo': grpc.unary_unary_rpc_method_handler(
+                    servicer.DarDeBajaVehiculo,
+                    request_deserializer=vehicle__pb2.DarDeBajaVehiculoRequest.FromString,
+                    response_serializer=vehicle__pb2.DarDeBajaVehiculoResponse.SerializeToString,
             ),
-            'CheckOperative': grpc.unary_unary_rpc_method_handler(
-                    servicer.CheckOperative,
-                    request_deserializer=vehicle__pb2.VehicleIdRequest.FromString,
-                    response_serializer=vehicle__pb2.OperativeResponse.SerializeToString,
+            'VerificarOperatividad': grpc.unary_unary_rpc_method_handler(
+                    servicer.VerificarOperatividad,
+                    request_deserializer=vehicle__pb2.VerificarOperatividadRequest.FromString,
+                    response_serializer=vehicle__pb2.VerificarOperatividadResponse.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
@@ -146,11 +169,14 @@ def add_VehicleServiceServicer_to_server(servicer, server):
 
 
  # This class is part of an EXPERIMENTAL API.
-class VehicleService:
-    """Missing associated documentation comment in .proto file."""
+class VehicleService(object):
+    """VehicleService administra la flota de Rentar: alta, modificación, baja
+    lógica y consulta de vehículos, y la verificación de que un vehículo pueda
+    participar de nuevas operaciones. Es el único dueño de la base vehicle_db.
+    """
 
     @staticmethod
-    def GetVehicles(request,
+    def ListarVehiculos(request,
             target,
             options=(),
             channel_credentials=None,
@@ -163,9 +189,9 @@ class VehicleService:
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/vehicle.v1.VehicleService/GetVehicles',
-            vehicle__pb2.Empty.SerializeToString,
-            vehicle__pb2.VehicleList.FromString,
+            '/vehicle.v1.VehicleService/ListarVehiculos',
+            vehicle__pb2.ListarVehiculosRequest.SerializeToString,
+            vehicle__pb2.ListarVehiculosResponse.FromString,
             options,
             channel_credentials,
             insecure,
@@ -177,7 +203,7 @@ class VehicleService:
             _registered_method=True)
 
     @staticmethod
-    def GetVehicleById(request,
+    def ObtenerVehiculo(request,
             target,
             options=(),
             channel_credentials=None,
@@ -190,9 +216,9 @@ class VehicleService:
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/vehicle.v1.VehicleService/GetVehicleById',
-            vehicle__pb2.VehicleIdRequest.SerializeToString,
-            vehicle__pb2.Vehicle.FromString,
+            '/vehicle.v1.VehicleService/ObtenerVehiculo',
+            vehicle__pb2.ObtenerVehiculoRequest.SerializeToString,
+            vehicle__pb2.ObtenerVehiculoResponse.FromString,
             options,
             channel_credentials,
             insecure,
@@ -204,7 +230,7 @@ class VehicleService:
             _registered_method=True)
 
     @staticmethod
-    def CreateVehicle(request,
+    def CrearVehiculo(request,
             target,
             options=(),
             channel_credentials=None,
@@ -217,9 +243,9 @@ class VehicleService:
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/vehicle.v1.VehicleService/CreateVehicle',
-            vehicle__pb2.CreateVehicleRequest.SerializeToString,
-            vehicle__pb2.Vehicle.FromString,
+            '/vehicle.v1.VehicleService/CrearVehiculo',
+            vehicle__pb2.CrearVehiculoRequest.SerializeToString,
+            vehicle__pb2.CrearVehiculoResponse.FromString,
             options,
             channel_credentials,
             insecure,
@@ -231,7 +257,7 @@ class VehicleService:
             _registered_method=True)
 
     @staticmethod
-    def UpdateVehicle(request,
+    def ActualizarVehiculo(request,
             target,
             options=(),
             channel_credentials=None,
@@ -244,9 +270,9 @@ class VehicleService:
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/vehicle.v1.VehicleService/UpdateVehicle',
-            vehicle__pb2.UpdateVehicleRequest.SerializeToString,
-            vehicle__pb2.Vehicle.FromString,
+            '/vehicle.v1.VehicleService/ActualizarVehiculo',
+            vehicle__pb2.ActualizarVehiculoRequest.SerializeToString,
+            vehicle__pb2.ActualizarVehiculoResponse.FromString,
             options,
             channel_credentials,
             insecure,
@@ -258,7 +284,7 @@ class VehicleService:
             _registered_method=True)
 
     @staticmethod
-    def DeleteVehicle(request,
+    def DarDeBajaVehiculo(request,
             target,
             options=(),
             channel_credentials=None,
@@ -271,9 +297,9 @@ class VehicleService:
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/vehicle.v1.VehicleService/DeleteVehicle',
-            vehicle__pb2.VehicleIdRequest.SerializeToString,
-            vehicle__pb2.Empty.FromString,
+            '/vehicle.v1.VehicleService/DarDeBajaVehiculo',
+            vehicle__pb2.DarDeBajaVehiculoRequest.SerializeToString,
+            vehicle__pb2.DarDeBajaVehiculoResponse.FromString,
             options,
             channel_credentials,
             insecure,
@@ -285,7 +311,7 @@ class VehicleService:
             _registered_method=True)
 
     @staticmethod
-    def CheckOperative(request,
+    def VerificarOperatividad(request,
             target,
             options=(),
             channel_credentials=None,
@@ -298,9 +324,9 @@ class VehicleService:
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/vehicle.v1.VehicleService/CheckOperative',
-            vehicle__pb2.VehicleIdRequest.SerializeToString,
-            vehicle__pb2.OperativeResponse.FromString,
+            '/vehicle.v1.VehicleService/VerificarOperatividad',
+            vehicle__pb2.VerificarOperatividadRequest.SerializeToString,
+            vehicle__pb2.VerificarOperatividadResponse.FromString,
             options,
             channel_credentials,
             insecure,

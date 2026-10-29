@@ -1,7 +1,9 @@
 import sys
 import os
+from datetime import datetime, timezone
 import grpc
 import pytest
+from google.protobuf.timestamp_pb2 import Timestamp
 
 current_dir = os.path.dirname(os.path.abspath(__file__))
 rental_service_dir = os.path.abspath(os.path.join(current_dir, ".."))
@@ -14,6 +16,13 @@ from app.generated.rental.v1 import rental_pb2, rental_pb2_grpc
 
 from app.db import SessionLocal
 from app.repository import RentalModel
+
+
+def ts(year, month, day):
+    timestamp = Timestamp()
+    timestamp.FromDatetime(datetime(year, month, day, tzinfo=timezone.utc))
+    return timestamp
+
 
 @pytest.fixture(autouse=True)
 def limpiar_db():
@@ -36,36 +45,65 @@ def stub(pyt_channel):
 
 def test_crear_y_cancelar_renta(stub):
     response = stub.CrearRenta(rental_pb2.CrearRentaRequest(
-        clienteId="cliente-test-1",
-        vehiculoId="vehiculo-test-A",
-        fechaInicio="2026-12-01",
-        fechaFin="2026-12-05",
-        precioDiario=62.5
-    ))
+        cliente_id="cliente-test-1",
+        vehiculo_id="vehiculo-test-A",
+        fecha_inicio=ts(2030, 12, 1),
+        fecha_fin=ts(2030, 12, 5),
+        precio_diario=62.5
+    )).renta
     assert response.id != ""
-    assert response.estado == "CONFIRMADA"
-    assert response.precioTotal == 250.0
-    renta_id = response.id
+    assert response.estado == rental_pb2.ESTADO_RENTA_CONFIRMADA
+    assert response.precio_total == 250.0
+    assert response.fecha_inicio == ts(2030, 12, 1)
 
-    cancel_response = stub.CancelarRenta(rental_pb2.CancelarRentaRequest(id=renta_id))
-    assert cancel_response.estado == "CANCELADA"
+    cancelada = stub.CancelarRenta(rental_pb2.CancelarRentaRequest(id=response.id)).renta
+    assert cancelada.estado == rental_pb2.ESTADO_RENTA_CANCELADA
 
 def test_solapamiento_reservas(stub):
     stub.CrearRenta(rental_pb2.CrearRentaRequest(
-        clienteId="cliente-test-2",
-        vehiculoId="vehiculo-test-B",
-        fechaInicio="2026-12-10",
-        fechaFin="2026-12-15",
-        precioDiario=60.0
+        cliente_id="cliente-test-2",
+        vehiculo_id="vehiculo-test-B",
+        fecha_inicio=ts(2030, 12, 10),
+        fecha_fin=ts(2030, 12, 15),
+        precio_diario=60.0
     ))
+
+    solapamiento = stub.VerificarSolapamiento(rental_pb2.VerificarSolapamientoRequest(
+        vehiculo_id="vehiculo-test-B",
+        fecha_inicio=ts(2030, 12, 12),
+        fecha_fin=ts(2030, 12, 18),
+    ))
+    assert solapamiento.hay_solapamiento is True
 
     with pytest.raises(grpc.RpcError) as exc_info:
         stub.CrearRenta(rental_pb2.CrearRentaRequest(
-            clienteId="cliente-test-3",
-            vehiculoId="vehiculo-test-B",  
-            fechaInicio="2026-12-12",     
-            fechaFin="2026-12-18",
-            precioDiario=60.0
+            cliente_id="cliente-test-3",
+            vehiculo_id="vehiculo-test-B",
+            fecha_inicio=ts(2030, 12, 12),
+            fecha_fin=ts(2030, 12, 18),
+            precio_diario=60.0
         ))
-    
+
     assert exc_info.value.code() == grpc.StatusCode.ALREADY_EXISTS
+
+def test_rechaza_fin_anterior_al_inicio(stub):
+    with pytest.raises(grpc.RpcError) as exc_info:
+        stub.CrearRenta(rental_pb2.CrearRentaRequest(
+            cliente_id="cliente-test-4",
+            vehiculo_id="vehiculo-test-C",
+            fecha_inicio=ts(2030, 12, 20),
+            fecha_fin=ts(2030, 12, 19),
+            precio_diario=60.0
+        ))
+
+    assert exc_info.value.code() == grpc.StatusCode.INVALID_ARGUMENT
+
+def test_rechaza_fechas_faltantes(stub):
+    with pytest.raises(grpc.RpcError) as exc_info:
+        stub.CrearRenta(rental_pb2.CrearRentaRequest(
+            cliente_id="cliente-test-5",
+            vehiculo_id="vehiculo-test-D",
+            precio_diario=60.0
+        ))
+
+    assert exc_info.value.code() == grpc.StatusCode.INVALID_ARGUMENT

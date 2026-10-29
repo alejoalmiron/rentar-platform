@@ -1,63 +1,203 @@
+// Contrato gRPC del Vehicle Service de Rentar.
+//
+// Convenciones comunes a los tres contratos (vehicle, customer, rental):
+// - Los servicios conservan el nombre en inglés indicado por el enunciado
+//   (VehicleService, CustomerService, RentalService); los métodos, mensajes,
+//   campos y enums usan el vocabulario en español del dominio de Rentar.
+// - Cada método RPC tiene su propio mensaje <Metodo>Request y <Metodo>Response
+//   (regla RPC_REQUEST_RESPONSE_UNIQUE de Buf Lint).
+// - Los campos usan lower_snake_case; los valores de enum llevan el nombre del
+//   enum como prefijo y el valor 0 es *_UNSPECIFIED, que nunca es un valor
+//   válido de negocio.
+// - Los errores se informan con códigos de estado gRPC (INVALID_ARGUMENT,
+//   NOT_FOUND, ALREADY_EXISTS, FAILED_PRECONDITION) y un mensaje descriptivo.
 syntax = "proto3";
+
 package vehicle.v1;
 
+// VehicleService administra la flota de Rentar: alta, modificación, baja
+// lógica y consulta de vehículos, y la verificación de que un vehículo pueda
+// participar de nuevas operaciones. Es el único dueño de la base vehicle_db.
 service VehicleService {
-  rpc GetVehicles (Empty) returns (VehicleList);
-  rpc GetVehicleById (VehicleIdRequest) returns (Vehicle);
-  rpc CreateVehicle (CreateVehicleRequest) returns (Vehicle);
-  rpc UpdateVehicle (UpdateVehicleRequest) returns (Vehicle);
-  rpc DeleteVehicle (VehicleIdRequest) returns (Empty);
-  rpc CheckOperative (VehicleIdRequest) returns (OperativeResponse);
+  // Lista los vehículos activos (los dados de baja lógica no se incluyen).
+  rpc ListarVehiculos(ListarVehiculosRequest) returns (ListarVehiculosResponse);
+
+  // Obtiene un vehículo activo por id.
+  // Errores: NOT_FOUND si no existe o fue dado de baja.
+  rpc ObtenerVehiculo(ObtenerVehiculoRequest) returns (ObtenerVehiculoResponse);
+
+  // Registra un vehículo nuevo en la flota. El vehículo queda en estado
+  // ESTADO_VEHICULO_DISPONIBLE, activo y operativo.
+  // Errores: INVALID_ARGUMENT si faltan datos obligatorios o son inválidos;
+  // ALREADY_EXISTS si la patente ya está registrada.
+  rpc CrearVehiculo(CrearVehiculoRequest) returns (CrearVehiculoResponse);
+
+  // Modifica los datos de un vehículo activo. La patente no forma parte del
+  // mensaje porque no puede modificarse una vez registrado el vehículo.
+  // Errores: INVALID_ARGUMENT si los datos son inválidos; NOT_FOUND si el
+  // vehículo no existe o fue dado de baja.
+  rpc ActualizarVehiculo(ActualizarVehiculoRequest) returns (ActualizarVehiculoResponse);
+
+  // Realiza la baja lógica de un vehículo: el registro se conserva con
+  // activo = false y deja de poder usarse para nuevos alquileres.
+  // Errores: NOT_FOUND si no existe o ya fue dado de baja.
+  rpc DarDeBajaVehiculo(DarDeBajaVehiculoRequest) returns (DarDeBajaVehiculoResponse);
+
+  // Indica si el vehículo está habilitado para nuevas operaciones
+  // (por ejemplo, no está inhabilitado por una verificación de patente).
+  // Errores: NOT_FOUND si no existe o fue dado de baja.
+  rpc VerificarOperatividad(VerificarOperatividadRequest) returns (VerificarOperatividadResponse);
 }
 
-message Empty {}
-
-message VehicleIdRequest {
-  int32 id = 1;
+// Tipos de vehículo admitidos por la flota.
+enum TipoVehiculo {
+  // Valor por defecto de proto3; se rechaza con INVALID_ARGUMENT.
+  TIPO_VEHICULO_UNSPECIFIED = 0;
+  // Sedán de cuatro puertas con baúl separado.
+  TIPO_VEHICULO_SEDAN = 1;
+  // Vehículo utilitario deportivo.
+  TIPO_VEHICULO_SUV = 2;
+  // Camioneta con caja de carga.
+  TIPO_VEHICULO_PICKUP = 3;
+  // Cupé de dos puertas.
+  TIPO_VEHICULO_COUPE = 4;
+  // Compacto con portón trasero.
+  TIPO_VEHICULO_HATCHBACK = 5;
 }
 
-message Vehicle {
+// Estado operativo de un vehículo respecto de los alquileres.
+enum EstadoVehiculo {
+  // Valor por defecto de proto3; nunca se devuelve en un Vehiculo.
+  ESTADO_VEHICULO_UNSPECIFIED = 0;
+  // Puede reservarse. Es el estado inicial de todo vehículo dado de alta.
+  ESTADO_VEHICULO_DISPONIBLE = 1;
+  // Tiene una reserva confirmada que todavía no comenzó.
+  ESTADO_VEHICULO_RESERVADO = 2;
+  // Se encuentra alquilado en este momento.
+  ESTADO_VEHICULO_EN_ALQUILER = 3;
+}
+
+// Vehículo de la flota de Rentar.
+message Vehiculo {
+  // Identificador numérico asignado por el servicio (clave primaria).
   int32 id = 1;
+  // Marca del vehículo. Obligatoria.
   string marca = 2;
+  // Modelo del vehículo. Obligatorio.
   string modelo = 3;
+  // Patente, única en la flota y almacenada en mayúsculas. No es modificable.
   string patente = 4;
+  // false cuando el vehículo está inhabilitado para nuevas operaciones.
   bool operativo = 5;
+  // false cuando el vehículo fue dado de baja lógica.
   bool activo = 6;
+  // Año de fabricación (mayor o igual a 1886).
   int32 anio = 7;
+  // Color. Opcional: cadena vacía si no se informó.
   string color = 8;
-  string tipo = 9;
+  // Tipo de vehículo.
+  TipoVehiculo tipo = 9;
+  // Precio por día de alquiler, en pesos. Mayor o igual a cero.
   double precio_diario = 10;
-  string estado = 11;
+  // Estado operativo respecto de los alquileres.
+  EstadoVehiculo estado = 11;
 }
 
-message VehicleList {
-  repeated Vehicle vehicles = 1;
+// Solicitud de ListarVehiculos. No requiere parámetros.
+message ListarVehiculosRequest {}
+
+// Respuesta de ListarVehiculos.
+message ListarVehiculosResponse {
+  // Vehículos activos de la flota.
+  repeated Vehiculo vehiculos = 1;
 }
 
-message CreateVehicleRequest {
-  string marca = 1;
-  string modelo = 2;
-  string patente = 3;
-  int32 anio = 4;
-  string color = 5;
-  string tipo = 6;
-  double precio_diario = 7;
-  string estado = 8;
-}
-
-message UpdateVehicleRequest {
+// Solicitud de ObtenerVehiculo.
+message ObtenerVehiculoRequest {
+  // Id del vehículo a consultar. Obligatorio, entero positivo.
   int32 id = 1;
-  string marca = 2;
-  string modelo = 3;
-  string patente = 4;
-  bool operativo = 5;
-  int32 anio = 6;
-  string color = 7;
-  string tipo = 8;
-  double precio_diario = 9;
-  string estado = 10;
 }
 
-message OperativeResponse {
+// Respuesta de ObtenerVehiculo.
+message ObtenerVehiculoResponse {
+  // Vehículo encontrado.
+  Vehiculo vehiculo = 1;
+}
+
+// Solicitud de CrearVehiculo. El estado no se informa: todo vehículo nuevo
+// comienza como ESTADO_VEHICULO_DISPONIBLE.
+message CrearVehiculoRequest {
+  // Marca. Obligatoria, no vacía.
+  string marca = 1;
+  // Modelo. Obligatorio, no vacío.
+  string modelo = 2;
+  // Patente. Obligatoria y única; se normaliza a mayúsculas.
+  string patente = 3;
+  // Año de fabricación. Obligatorio, mayor o igual a 1886.
+  int32 anio = 4;
+  // Color. Opcional.
+  string color = 5;
+  // Tipo de vehículo. Obligatorio, distinto de TIPO_VEHICULO_UNSPECIFIED.
+  TipoVehiculo tipo = 6;
+  // Precio por día de alquiler. Obligatorio, mayor o igual a cero.
+  double precio_diario = 7;
+}
+
+// Respuesta de CrearVehiculo.
+message CrearVehiculoResponse {
+  // Vehículo creado, con el id asignado.
+  Vehiculo vehiculo = 1;
+}
+
+// Solicitud de ActualizarVehiculo. Reemplaza todos los datos modificables
+// del vehículo, por lo que se deben enviar los valores completos.
+message ActualizarVehiculoRequest {
+  // Id del vehículo a modificar. Obligatorio.
+  int32 id = 1;
+  // Marca. Obligatoria, no vacía.
+  string marca = 2;
+  // Modelo. Obligatorio, no vacío.
+  string modelo = 3;
+  // Si el vehículo está habilitado para nuevas operaciones.
+  bool operativo = 4;
+  // Año de fabricación. Obligatorio, mayor o igual a 1886.
+  int32 anio = 5;
+  // Color. Opcional.
+  string color = 6;
+  // Tipo de vehículo. Obligatorio, distinto de TIPO_VEHICULO_UNSPECIFIED.
+  TipoVehiculo tipo = 7;
+  // Precio por día de alquiler. Obligatorio, mayor o igual a cero.
+  double precio_diario = 8;
+  // Estado operativo. Obligatorio, distinto de ESTADO_VEHICULO_UNSPECIFIED.
+  EstadoVehiculo estado = 9;
+}
+
+// Respuesta de ActualizarVehiculo.
+message ActualizarVehiculoResponse {
+  // Vehículo con los datos actualizados.
+  Vehiculo vehiculo = 1;
+}
+
+// Solicitud de DarDeBajaVehiculo.
+message DarDeBajaVehiculoRequest {
+  // Id del vehículo a dar de baja. Obligatorio.
+  int32 id = 1;
+}
+
+// Respuesta de DarDeBajaVehiculo.
+message DarDeBajaVehiculoResponse {
+  // Vehículo dado de baja (activo = false).
+  Vehiculo vehiculo = 1;
+}
+
+// Solicitud de VerificarOperatividad.
+message VerificarOperatividadRequest {
+  // Id del vehículo a verificar. Obligatorio.
+  int32 id = 1;
+}
+
+// Respuesta de VerificarOperatividad.
+message VerificarOperatividadResponse {
+  // true si el vehículo puede participar de nuevas operaciones.
   bool operativo = 1;
 }

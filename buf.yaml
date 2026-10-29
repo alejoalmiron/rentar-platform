@@ -1,0 +1,12 @@
+version: v2
+modules:
+  - path: services/vehicle-service/proto
+  - path: services/customer-service/proto
+  - path: services/rental-service/proto
+lint:
+  use:
+    - STANDARD
+    - COMMENTS
+breaking:
+  use:
+    - FILE
