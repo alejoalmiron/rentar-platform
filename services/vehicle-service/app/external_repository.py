@@ -6,7 +6,7 @@ class VehiculoExternoModel(Base):
     __tablename__ = "vehiculos_externos"
 
     id = Column(Integer, primary_key=True, index=True)
-    vehiculo_externo_id = Column(String(36), unique=True, index=True, nullable=False) 
+    vehiculo_externo_id = Column(String(36), unique=True, index=True, nullable=False)
     cliente_id = Column(String(36), nullable=False)
     marca = Column(String(50), nullable=False)
     modelo = Column(String(50), nullable=False)
@@ -14,7 +14,7 @@ class VehiculoExternoModel(Base):
     anio = Column(Integer, nullable=True)
     color = Column(String(50), nullable=True)
     tipo = Column(String(20), nullable=True)
-    estado = Column(String(20), nullable=False, default="PENDIENTE") 
+    estado = Column(String(20), nullable=False, default="PENDIENTE")
     activo = Column(Boolean, nullable=False, default=True)
     patente_validada = Column(Boolean, nullable=False, default=False)
     titularidad_validada = Column(Boolean, nullable=False, default=False)
@@ -125,6 +125,6 @@ def update_validacion(db: Session, vehiculo_externo_id: str, tipo: str, valida: 
 def delete(db: Session, vehicle_id: int):
     vehicle = get_by_id(db, vehicle_id)
     if vehicle:
-        vehicle.activo = False 
+        vehicle.activo = False
         db.commit()
     return vehicle
