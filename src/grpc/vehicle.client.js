@@ -1,8 +1,14 @@
 import grpc from '@grpc/grpc-js';
 import { callGrpc } from './clientFactory.js';
-import { normalizeDates } from './timestamps.js';
+import { fromProtoEnum, toProtoEnum } from './enums.js';
 
-const unwrap = (response, key) => normalizeDates(response?.[key] ?? response);
+function fromProtoVehicle(vehicle) {
+  return {
+    ...vehicle,
+    tipo: fromProtoEnum('TIPO_VEHICULO', vehicle.tipo),
+    estado: fromProtoEnum('ESTADO_VEHICULO', vehicle.estado),
+  };
+}
 
 function invalidArgument(message) {
   const error = new Error(message);
@@ -18,8 +24,8 @@ function toVehicleId(id) {
   return value;
 }
 
-function validateRequiredFields(vehicle) {
-  for (const field of ['marca', 'modelo', 'patente']) {
+function validateRequiredFields(vehicle, fields = ['marca', 'modelo', 'patente']) {
+  for (const field of fields) {
     if (typeof vehicle[field] !== 'string' || vehicle[field].trim() === '') {
       throw invalidArgument(`El campo ${field} es obligatorio`);
     }
@@ -47,11 +53,12 @@ function filterVehicles(vehicles, filters) {
 
 export const vehicleClient = {
   async list(filters = {}) {
-    const response = await callGrpc('vehicle', 'GetVehicles', {});
-    return filterVehicles(normalizeDates(response.vehicles || []), filters);
+    const response = await callGrpc('vehicle', 'ListarVehiculos', {});
+    return filterVehicles((response.vehiculos || []).map(fromProtoVehicle), filters);
   },
   async getById(id) {
-    return unwrap(await callGrpc('vehicle', 'GetVehicleById', { id: toVehicleId(id) }), 'vehicle');
+    const response = await callGrpc('vehicle', 'ObtenerVehiculo', { id: toVehicleId(id) });
+    return fromProtoVehicle(response.vehiculo);
   },
   async getByPlate(patente) {
     const vehicles = await this.list();
@@ -65,25 +72,27 @@ export const vehicleClient = {
   },
   async create(vehiculo) {
     validateRequiredFields(vehiculo);
-    const response = await callGrpc('vehicle', 'CreateVehicle', {
+    const response = await callGrpc('vehicle', 'CrearVehiculo', {
       marca: vehiculo.marca.trim(),
       modelo: vehiculo.modelo.trim(),
       patente: vehiculo.patente.trim(),
       anio: Number(vehiculo.anio),
       color: vehiculo.color || '',
-      tipo: vehiculo.tipo,
+      tipo: toProtoEnum('TIPO_VEHICULO', vehiculo.tipo),
       precioDiario: Number(vehiculo.precioDiario),
-      estado: vehiculo.estado || 'DISPONIBLE',
     });
-    return unwrap(response, 'vehicle');
+    return fromProtoVehicle(response.vehiculo);
   },
   async update(id, vehiculo) {
     const vehicleId = toVehicleId(id);
     const current = await this.getById(vehicleId);
+    if (vehiculo.patente !== undefined
+      && String(vehiculo.patente).trim().toUpperCase() !== current.patente) {
+      throw invalidArgument('La patente no puede modificarse una vez registrado el vehículo');
+    }
     const updated = {
       marca: vehiculo.marca ?? current.marca,
       modelo: vehiculo.modelo ?? current.modelo,
-      patente: vehiculo.patente ?? current.patente,
       operativo: vehiculo.operativo ?? current.operativo,
       anio: vehiculo.anio ?? current.anio,
       color: vehiculo.color ?? current.color,
@@ -91,36 +100,33 @@ export const vehicleClient = {
       precioDiario: vehiculo.precioDiario ?? current.precioDiario,
       estado: vehiculo.estado ?? current.estado,
     };
-    validateRequiredFields(updated);
+    validateRequiredFields(updated, ['marca', 'modelo']);
     if (typeof updated.operativo !== 'boolean') {
       throw invalidArgument('El campo operativo debe ser booleano');
     }
 
-    const response = await callGrpc('vehicle', 'UpdateVehicle', {
+    const response = await callGrpc('vehicle', 'ActualizarVehiculo', {
       id: vehicleId,
       marca: updated.marca.trim(),
       modelo: updated.modelo.trim(),
-      patente: updated.patente.trim(),
       operativo: updated.operativo,
       anio: updated.anio,
       color: updated.color || '',
-      tipo: updated.tipo,
+      tipo: toProtoEnum('TIPO_VEHICULO', updated.tipo),
       precioDiario: updated.precioDiario,
-      estado: updated.estado,
+      estado: toProtoEnum('ESTADO_VEHICULO', updated.estado),
     });
-    return unwrap(response, 'vehicle');
+    return fromProtoVehicle(response.vehiculo);
   },
   async deactivate(id) {
-    const vehicleId = toVehicleId(id);
-    const vehicle = await this.getById(vehicleId);
-    await callGrpc('vehicle', 'DeleteVehicle', { id: vehicleId });
-    return { ...vehicle, activo: false };
+    const response = await callGrpc('vehicle', 'DarDeBajaVehiculo', { id: toVehicleId(id) });
+    return fromProtoVehicle(response.vehiculo);
   },
   async checkOperational({ id, patente }) {
     const vehicle = id !== undefined
       ? await this.getById(id)
       : await this.getByPlate(patente);
-    const response = await callGrpc('vehicle', 'CheckOperative', { id: toVehicleId(vehicle.id) });
+    const response = await callGrpc('vehicle', 'VerificarOperatividad', { id: toVehicleId(vehicle.id) });
     return {
       exists: true,
       active: vehicle.activo,

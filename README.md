@@ -15,6 +15,22 @@ Proyecto de la Universidad Nacional de Lanús para **Desarrollo de Software en S
 
 La interfaz web se comunica exclusivamente con el Gateway. El Gateway orquesta las validaciones de cliente, vehículo y período; Rental Service vuelve a comprobar solapamientos al guardar para protegerse de solicitudes concurrentes.
 
+## Contratos gRPC
+
+Los tres `.proto` están documentados con comentarios por servicio, método, mensaje, campo y valor de enum, y cumplen las reglas `STANDARD` y `COMMENTS` de Buf Lint (configuración en [buf.yaml](buf.yaml)):
+
+```bash
+npx @bufbuild/buf lint
+```
+
+Convenciones aplicadas:
+
+- **Request/response exclusivos:** cada RPC usa sus propios mensajes `<Metodo>Request` y `<Metodo>Response` (regla `RPC_REQUEST_RESPONSE_UNIQUE`); las entidades (`Vehiculo`, `Cliente`, `Renta`) se envuelven dentro de la respuesta.
+- **Nomenclatura:** los servicios conservan el nombre del enunciado (`VehicleService`, `CustomerService`, `RentalService`); métodos, mensajes, campos y enums usan el vocabulario del dominio en español. Los campos están en `lower_snake_case`; el Gateway los recibe en camelCase porque `@grpc/proto-loader` los convierte (`keepCase: false`).
+- **Fechas:** `fecha_inicio` y `fecha_fin` son `google.protobuf.Timestamp` (instante UTC). Rental Service las persiste como texto ISO-8601 UTC con milisegundos (`2030-01-10T10:00:00.000Z`) para que la comparación del control de solapamiento respete el orden cronológico.
+- **Enums:** `TipoVehiculo`, `EstadoVehiculo`, `EstadoRenta` y `Rol` reemplazan los `string` libres. Los valores llevan el nombre del enum como prefijo (`TIPO_VEHICULO_SEDAN`) y el valor `0` es `*_UNSPECIFIED`, que los servicios rechazan con `INVALID_ARGUMENT`. El Gateway traduce al valor de dominio (`SEDAN`) en `src/grpc/enums.js`, por lo que REST, GraphQL y el frontend no cambian.
+- **Reglas de negocio en el contrato:** `CrearVehiculoRequest` no tiene `estado` (todo vehículo nuevo queda `DISPONIBLE`) y `ActualizarVehiculoRequest` no tiene `patente` (no es modificable).
+
 ## Requisitos
 
 - Docker Engine y Docker Compose.

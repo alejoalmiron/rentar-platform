@@ -1,75 +1,188 @@
+// Contrato gRPC del Customer Service de Rentar.
+//
+// Sigue las convenciones comunes descriptas en vehicle/v1/vehicle.proto:
+// servicio con nombre del enunciado, vocabulario del dominio en español,
+// request/response exclusivos por método, campos lower_snake_case y enums con
+// prefijo y valor 0 *_UNSPECIFIED.
 syntax = "proto3";
 
 package customer.v1;
 
+// CustomerService administra los clientes de Rentar (alta, modificación, baja
+// lógica y consulta), valida si un cliente puede alquilar y autentica las
+// cuentas de usuario. Es el único dueño de la base customer_db.
 service CustomerService {
-  rpc ListCustomers (Empty) returns (CustomerListResponse);
-  rpc GetCustomerById (CustomerByIdRequest) returns (CustomerResponse);
-  rpc CreateCustomer (CreateCustomerRequest) returns (CustomerResponse);
-  rpc UpdateCustomer (UpdateCustomerRequest) returns (CustomerResponse);
-  rpc DeactivateCustomer (DeactivateCustomerRequest) returns (CustomerResponse);
-  rpc ValidateActiveCustomer (ValidateCustomerRequest) returns (ValidateCustomerResponse);
-  rpc AuthenticateUser (AuthenticateUserRequest) returns (AuthenticateUserResponse);
+  // Lista todos los clientes, activos e inactivos.
+  rpc ListarClientes(ListarClientesRequest) returns (ListarClientesResponse);
+
+  // Obtiene un cliente por id.
+  // Errores: NOT_FOUND si no existe.
+  rpc ObtenerCliente(ObtenerClienteRequest) returns (ObtenerClienteResponse);
+
+  // Registra un cliente nuevo, que queda activo.
+  // Errores: INVALID_ARGUMENT si falta algún dato obligatorio;
+  // ALREADY_EXISTS si el DNI o el email ya están registrados.
+  rpc CrearCliente(CrearClienteRequest) returns (CrearClienteResponse);
+
+  // Modifica los datos de contacto de un cliente. El DNI no es modificable.
+  // Los campos enviados vacíos conservan su valor actual.
+  // Errores: NOT_FOUND si no existe; ALREADY_EXISTS si el nuevo email ya
+  // pertenece a otro cliente.
+  rpc ActualizarCliente(ActualizarClienteRequest) returns (ActualizarClienteResponse);
+
+  // Realiza la baja lógica de un cliente: el registro se conserva con
+  // activo = false y el cliente no puede realizar nuevos alquileres.
+  // Errores: NOT_FOUND si no existe.
+  rpc DarDeBajaCliente(DarDeBajaClienteRequest) returns (DarDeBajaClienteResponse);
+
+  // Verifica que un cliente exista y se encuentre activo, como paso previo a
+  // crear una reserva. Nunca falla por cliente inexistente: lo informa en la
+  // respuesta.
+  rpc ValidarClienteActivo(ValidarClienteActivoRequest) returns (ValidarClienteActivoResponse);
+
+  // Valida las credenciales de una cuenta y devuelve su identidad y rol.
+  // Las contraseñas se comparan contra un hash bcrypt.
+  // Errores: INVALID_ARGUMENT si falta usuario o contraseña;
+  // UNAUTHENTICATED si las credenciales son inválidas o la cuenta (o su
+  // cliente asociado) está inactiva; PERMISSION_DENIED si la cuenta tiene un
+  // rol desconocido.
+  rpc AutenticarUsuario(AutenticarUsuarioRequest) returns (AutenticarUsuarioResponse);
 }
 
-message Empty {}
+// Rol de una cuenta de usuario.
+enum Rol {
+  // Valor por defecto de proto3; nunca se devuelve.
+  ROL_UNSPECIFIED = 0;
+  // Administrador: gestiona vehículos y clientes y ve todas las reservas.
+  ROL_ADMIN = 1;
+  // Cliente: reserva vehículos y consulta solo sus propias reservas.
+  ROL_CLIENTE = 2;
+}
 
-message CustomerResponse {
+// Cliente de Rentar.
+message Cliente {
+  // Identificador UUID asignado por el servicio (clave primaria).
   string id = 1;
+  // Documento nacional de identidad. Único y obligatorio.
   string dni = 2;
+  // Nombre. Obligatorio.
   string nombre = 3;
+  // Apellido. Obligatorio.
   string apellido = 4;
+  // Email. Único y obligatorio.
   string email = 5;
+  // false cuando el cliente fue dado de baja lógica.
   bool activo = 6;
+  // Teléfono. Opcional: cadena vacía si no se informó.
   string telefono = 7;
 }
 
-message CustomerListResponse {
-  repeated CustomerResponse customers = 1;
+// Solicitud de ListarClientes. No requiere parámetros.
+message ListarClientesRequest {}
+
+// Respuesta de ListarClientes.
+message ListarClientesResponse {
+  // Clientes registrados.
+  repeated Cliente clientes = 1;
 }
 
-message CustomerByIdRequest {
+// Solicitud de ObtenerCliente.
+message ObtenerClienteRequest {
+  // Id del cliente a consultar. Obligatorio.
   string id = 1;
 }
 
-message CreateCustomerRequest {
+// Respuesta de ObtenerCliente.
+message ObtenerClienteResponse {
+  // Cliente encontrado.
+  Cliente cliente = 1;
+}
+
+// Solicitud de CrearCliente.
+message CrearClienteRequest {
+  // Documento. Obligatorio y único.
   string dni = 1;
+  // Nombre. Obligatorio.
   string nombre = 2;
+  // Apellido. Obligatorio.
   string apellido = 3;
+  // Email. Obligatorio y único.
   string email = 4;
+  // Teléfono. Opcional.
   string telefono = 5;
 }
 
-message UpdateCustomerRequest {
+// Respuesta de CrearCliente.
+message CrearClienteResponse {
+  // Cliente creado, con el id asignado.
+  Cliente cliente = 1;
+}
+
+// Solicitud de ActualizarCliente. Los campos vacíos no se modifican.
+message ActualizarClienteRequest {
+  // Id del cliente a modificar. Obligatorio.
   string id = 1;
+  // Nuevo nombre.
   string nombre = 2;
+  // Nuevo apellido.
   string apellido = 3;
+  // Nuevo email; debe seguir siendo único.
   string email = 4;
+  // Nuevo teléfono.
   string telefono = 5;
 }
 
-message DeactivateCustomerRequest {
+// Respuesta de ActualizarCliente.
+message ActualizarClienteResponse {
+  // Cliente con los datos actualizados.
+  Cliente cliente = 1;
+}
+
+// Solicitud de DarDeBajaCliente.
+message DarDeBajaClienteRequest {
+  // Id del cliente a dar de baja. Obligatorio.
   string id = 1;
 }
 
-message ValidateCustomerRequest {
+// Respuesta de DarDeBajaCliente.
+message DarDeBajaClienteResponse {
+  // Cliente dado de baja (activo = false).
+  Cliente cliente = 1;
+}
+
+// Solicitud de ValidarClienteActivo.
+message ValidarClienteActivoRequest {
+  // Id del cliente a validar. Obligatorio.
   string id = 1;
 }
 
-message ValidateCustomerResponse {
-  bool exists = 1;
-  bool is_active = 2;
-  string message = 3;
+// Respuesta de ValidarClienteActivo. El cliente puede alquilar solo si
+// existe = true y activo = true.
+message ValidarClienteActivoResponse {
+  // true si el cliente está registrado.
+  bool existe = 1;
+  // true si el cliente no fue dado de baja.
+  bool activo = 2;
+  // Explicación legible del resultado.
+  string mensaje = 3;
 }
 
-message AuthenticateUserRequest {
-  string username = 1;
-  string password = 2;
+// Solicitud de AutenticarUsuario.
+message AutenticarUsuarioRequest {
+  // Nombre de usuario. Obligatorio; no distingue mayúsculas.
+  string usuario = 1;
+  // Contraseña en texto plano. Obligatoria; viaja solo por la red interna.
+  string contrasena = 2;
 }
 
-message AuthenticateUserResponse {
-  string user_id = 1;
-  string username = 2;
-  string role = 3;
-  string customer_id = 4;
+// Respuesta de AutenticarUsuario.
+message AutenticarUsuarioResponse {
+  // Id de la cuenta de usuario.
+  string usuario_id = 1;
+  // Nombre de usuario normalizado.
+  string usuario = 2;
+  // Rol de la cuenta.
+  Rol rol = 3;
+  // Id del cliente asociado a la cuenta. Vacío para ROL_ADMIN.
+  string cliente_id = 4;
 }
