@@ -1,9 +1,35 @@
 import grpc
 from sqlalchemy.exc import IntegrityError
+from sqlalchemy import text
 
 from . import repository
 from .db import SessionLocal
 from .generated import vehicle_pb2, vehicle_pb2_grpc
+from .messaging import event_bus, EVENTO_VERIFICACION_SOLICITADA
+
+def handle_verificacion_resultado(payload):
+    """Procesa el resultado asíncrono de la verificación de patente."""
+    vehiculo_id = payload.get("vehiculoId")
+    resultado = payload.get("resultado")
+    
+    if not vehiculo_id or not resultado:
+        return
+
+    print(f"Recibido resultado de verificación: Vehículo {vehiculo_id} -> {resultado}")
+    db = SessionLocal()
+    try:
+        query = text("UPDATE vehiculos SET estado_verificacion = :resultado WHERE id = :id")
+        result = db.execute(query, {"resultado": resultado, "id": vehiculo_id})
+        db.commit()
+        
+        # Esto nos dirá si realmente encontró el vehículo en la tabla
+        print(f"Vehículo {vehiculo_id} procesado. Filas modificadas en BD: {result.rowcount}")
+        
+    except Exception as e:
+        db.rollback()
+        print(f"ERROR AL ACTUALIZAR EN BD: {e}")
+    finally:
+        db.close()
 
 class VehicleServiceServicer(vehicle_pb2_grpc.VehicleServiceServicer):
 
@@ -67,14 +93,31 @@ class VehicleServiceServicer(vehicle_pb2_grpc.VehicleServiceServicer):
         data = self._vehicle_data(request)
         if data is None:
             context.abort(grpc.StatusCode.INVALID_ARGUMENT, "Los datos del vehículo son inválidos")
+        
         db = SessionLocal()
+        vehiculo_id = None
+        patente = None
+        
         try:
             v = repository.create(db, data)
+            # Guardamos los datos antes de cerrar la sesión para usarlos en el evento
+            vehiculo_id = v.id
+            patente = v.patente
         except IntegrityError:
             db.rollback()
             context.abort(grpc.StatusCode.ALREADY_EXISTS, "La patente ya está registrada")
         finally:
             db.close()
+            
+        # Generar evento asíncrono solicitando verificación
+        if vehiculo_id and patente:
+            try:
+                event_bus.publish(
+                    EVENTO_VERIFICACION_SOLICITADA,
+                    {"vehiculoId": vehiculo_id, "patente": patente}
+                )
+            except Exception as e:
+                print(f"Advertencia: Error publicando evento de verificación - {e}")
         return self._to_proto(v)
 
     def UpdateVehicle(self, request, context):

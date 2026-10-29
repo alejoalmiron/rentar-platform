@@ -44,7 +44,7 @@ URLs y puertos:
 | Rental Service gRPC | `localhost:50053` |
 | RabbitMQ (AMQP) | `localhost:5672` |
 | RabbitMQ Management | `http://localhost:15672` |
-| MySQL Customer / Vehicle / Rental | `localhost:3307` / `3308` / `3309` |
+| MySQL Customer / Vehicle / Rental | `localhost:3310` / `3308` / `3309` |
 
 Detener los contenedores con `docker compose down`. Los datos persisten en volúmenes Docker. Para borrar también esos datos de desarrollo, usar `docker compose down -v`.
 
