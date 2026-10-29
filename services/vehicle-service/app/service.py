@@ -175,6 +175,7 @@ class VehicleServiceServicer(vehicle_pb2_grpc.VehicleServiceServicer):
         EventBus().publish(EVENTO_EXTERNO_REGISTRADO, {
             "vehiculoExternoId": v.id,
             "clienteId": v.cliente_id,
+            "documento": request.documento.strip(),
             "patente": v.patente,
         })
         return vehicle_pb2.CrearVehiculoExternoResponse(vehiculo=self._to_proto_externo(v))

@@ -70,9 +70,12 @@ Un cliente registró un vehículo propio para incorporarlo al sistema (comienza 
 {
   "vehiculoExternoId": 50,
   "clienteId": "7c9e6679-7425-40de-944b-e07fc1f90ae7",
+  "documento": "30123456",
   "patente": "DEF456"
 }
 ```
+
+`documento` es el DNI del cliente: el validador de titularidad lo necesita para verificar que el cliente es titular de la patente.
 
 ### 4. `vehiculos.externos.validacion.patente`
 
