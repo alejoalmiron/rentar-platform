@@ -236,6 +236,8 @@ message CrearVehiculoExternoRequest {
   string color = 7;
   // Tipo del vehículo.
   TipoVehiculo tipo = 8;
+  // DNI del cliente titular, requerido por el validador de titularidad.
+  string documento = 9;
 }
 
 // Respuesta de CrearVehiculoExterno.

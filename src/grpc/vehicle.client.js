@@ -145,6 +145,7 @@ export const vehicleClient = {
       anio: payload.anio || 0,
       color: payload.color || '',
       tipo: toProtoEnum('TIPO_VEHICULO', payload.tipo),
+      documento: payload.documento || '',
     });
     return response.vehiculo;
   },

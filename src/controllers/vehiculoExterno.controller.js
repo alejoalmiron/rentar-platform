@@ -12,6 +12,7 @@ export const registrarVehiculoExterno = async (req, res) => {
 
     const payload = {
       clienteId,
+      documento: cliente.dni,
       marca: req.body.marca,
       modelo: req.body.modelo,
       patente: req.body.patente,
