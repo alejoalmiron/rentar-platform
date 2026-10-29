@@ -31,10 +31,10 @@
       "required": ["vehiculoExternoId", "clienteId", "patente"],
       "properties": {
         "vehiculoExternoId": { "type": "integer", "minimum": 1 },
-        "clienteId": { "type": "integer", "minimum": 1 },
+        "clienteId": { "type": "string", "minLength": 1 },
         "patente": { "type": "string", "minLength": 1 }
       },
-      "examples": [{ "vehiculoExternoId": 50, "clienteId": 89, "patente": "DEF456" }]
+      "examples": [{ "vehiculoExternoId": 50, "clienteId": "7c9e6679-7425-40de-944b-e07fc1f90ae7", "patente": "DEF456" }]
     },
     "vehiculos.externos.validacion.patente": {
       "type": "object",
@@ -53,7 +53,7 @@
       "required": ["vehiculoExternoId", "clienteId", "documento", "patente", "resultado"],
       "properties": {
         "vehiculoExternoId": { "type": "integer", "minimum": 1 },
-        "clienteId": { "type": "integer", "minimum": 1 },
+        "clienteId": { "type": "string", "minLength": 1 },
         "documento": { "type": "string", "minLength": 1 },
         "patente": { "type": "string", "minLength": 1 },
         "resultado": { "type": "string", "enum": ["VALIDADO", "RECHAZADO"] }
@@ -61,7 +61,7 @@
       "examples": [
         {
           "vehiculoExternoId": 50,
-          "clienteId": 89,
+          "clienteId": "7c9e6679-7425-40de-944b-e07fc1f90ae7",
           "documento": "30123456",
           "patente": "DEF456",
           "resultado": "VALIDADO"

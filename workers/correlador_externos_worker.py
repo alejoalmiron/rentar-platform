@@ -1,85 +1,88 @@
+import sqlite3
 import threading
 
 from common import topology
 from common.messaging import RabbitMQ
-from app import external_repository
-from app.db import SessionLocal
+
+DB_PATH = "correlador_externos.db"
+DB_LOCK = threading.Lock()
+
+
+def inicializar_estado():
+    with sqlite3.connect(DB_PATH) as db:
+        db.execute(
+            """
+            CREATE TABLE IF NOT EXISTS validaciones (
+                vehiculo_externo_id INTEGER PRIMARY KEY,
+                patente_validada INTEGER NOT NULL DEFAULT 0,
+                titularidad_validada INTEGER NOT NULL DEFAULT 0,
+                rechazada INTEGER NOT NULL DEFAULT 0
+            )
+            """
+        )
+        db.commit()
 
 
 def resultado_valido(evento):
-    return evento.get("resultado") == "VALIDADO" or evento.get("valida") is True
+    return evento.get("resultado") == "VALIDADO"
 
 
 def obtener_id(evento):
-    return evento.get("vehiculoExternoId") or evento.get("vehiculo_externo_id")
+    return evento.get("vehiculoExternoId")
 
 
-def procesar_resultado(db, evento, campo_validacion):
+def procesar_resultado(evento, campo_validacion):
     vehiculo_externo_id = obtener_id(evento)
-    if not vehiculo_externo_id:
-        raise ValueError("Falta vehiculoExternoId en el resultado de validación")
+    if not isinstance(vehiculo_externo_id, int) or vehiculo_externo_id < 1:
+        raise ValueError("Falta vehiculoExternoId válido en el resultado de validación")
 
-    vehiculo = external_repository.get_by_correlation_id(db, vehiculo_externo_id)
-    if not vehiculo:
-        raise ValueError(f"Vehículo externo no encontrado: {vehiculo_externo_id}")
-
-    if not resultado_valido(evento):
-        external_repository.update_estado_by_correlation(
-            db,
-            vehiculo_externo_id,
-            "RECHAZADO",
+    with DB_LOCK, sqlite3.connect(DB_PATH) as db:
+        db.execute(
+            "INSERT OR IGNORE INTO validaciones (vehiculo_externo_id) VALUES (?)",
+            (vehiculo_externo_id,),
         )
-        return
+        if not resultado_valido(evento):
+            db.execute(
+                "UPDATE validaciones SET rechazada = 1 WHERE vehiculo_externo_id = ?",
+                (vehiculo_externo_id,),
+            )
+        else:
+            db.execute(
+                f"UPDATE validaciones SET {campo_validacion} = 1 WHERE vehiculo_externo_id = ?",
+                (vehiculo_externo_id,),
+            )
+        row = db.execute(
+            """
+            SELECT patente_validada, titularidad_validada, rechazada
+            FROM validaciones WHERE vehiculo_externo_id = ?
+            """,
+            (vehiculo_externo_id,),
+        ).fetchone()
+        db.commit()
 
-    vehiculo = external_repository.update_validacion(
-        db,
-        vehiculo_externo_id,
-        campo_validacion,
-        True,
-    )
-    if vehiculo.patente_validada and vehiculo.titularidad_validada:
-        external_repository.update_estado_by_correlation(
-            db,
-            vehiculo_externo_id,
-            "DISPONIBLE",
-        )
+    if row == (1, 1, 0):
         RabbitMQ().publish(
             topology.EVENTOS["VEHICULO_EXTERNO_VALIDACION_COMPLETADA"],
-            {
-                "vehiculoExternoId": vehiculo_externo_id,
-                "clienteId": vehiculo.cliente_id,
-            },
+            {"vehiculoExternoId": vehiculo_externo_id},
         )
 
 
 def procesar_resultado_patente(evento):
-    db = SessionLocal()
-    try:
-        procesar_resultado(db, evento, "patente_validada")
-    finally:
-        db.close()
+    procesar_resultado(evento, "patente_validada")
 
 
 def procesar_resultado_titularidad(evento):
-    db = SessionLocal()
-    try:
-        procesar_resultado(db, evento, "titularidad_validada")
-    finally:
-        db.close()
-
-
-def ejecutar_consumidor(queue_name, callback):
-    RabbitMQ().consume(queue_name, callback)
+    procesar_resultado(evento, "titularidad_validada")
 
 
 def main():
-    consumidores = (
+    inicializar_estado()
+    for queue_name, callback in (
         ("correlador_externos.resultados_patente", procesar_resultado_patente),
         ("correlador_externos.resultados_titularidad", procesar_resultado_titularidad),
-    )
-    for queue_name, callback in consumidores:
+    ):
         threading.Thread(
-            target=ejecutar_consumidor,
+            target=RabbitMQ().consume,
             args=(queue_name, callback),
             daemon=True,
         ).start()

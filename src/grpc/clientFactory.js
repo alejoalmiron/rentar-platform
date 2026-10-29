@@ -19,7 +19,6 @@ function getClient(serviceKey) {
   let packageDefinition;
   try {
     packageDefinition = protoLoader.loadSync(protoPath, {
-      keepCase: true,
       longs: String,
       enums: String,
       defaults: true,

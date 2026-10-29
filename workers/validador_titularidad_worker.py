@@ -19,6 +19,7 @@ def procesar_validacion_titularidad(evento):
     resultado = "VALIDADO" if (documento, patente) in REGISTRO_TITULARIDAD else "RECHAZADO"
     payload = {
         "vehiculoExternoId": vehiculo_externo_id,
+        "clienteId": evento.get("clienteId"),
         "documento": documento,
         "patente": patente,
         "resultado": resultado,

@@ -25,7 +25,7 @@ def get_all(db: Session):
 def get_by_id(db: Session, vehicle_id: int):
     return db.query(VehiculoExternoModel).filter(VehiculoExternoModel.id == vehicle_id, VehiculoExternoModel.activo == True).first()
 
-def get_by_correlation_id(db: Session, vehiculo_externo_id: str):
+def get_by_correlation_id(db: Session, vehiculo_externo_id):
     return db.query(VehiculoExternoModel).filter(VehiculoExternoModel.vehiculo_externo_id == vehiculo_externo_id, VehiculoExternoModel.activo == True).first()
 
 def get_by_client_id(db: Session, cliente_id: str):
@@ -85,6 +85,34 @@ def update_estado_by_correlation(db: Session, vehiculo_externo_id: str, nuevo_es
         db.commit()
         db.refresh(vehicle)
     return vehicle
+
+def incorporate(db: Session, vehiculo_externo_id: str):
+    vehicle = get_by_correlation_id(db, vehiculo_externo_id)
+    if not vehicle:
+        return None
+    from .repository import VehicleModel
+    incorporated = db.query(VehicleModel).filter(VehicleModel.patente == vehicle.patente).first()
+    if incorporated:
+        vehicle.estado = "DISPONIBLE"
+        db.commit()
+        return incorporated
+    incorporated = VehicleModel(
+        marca=vehicle.marca,
+        modelo=vehicle.modelo,
+        patente=vehicle.patente,
+        operativo=True,
+        activo=True,
+        anio=vehicle.anio,
+        color=vehicle.color,
+        tipo=vehicle.tipo,
+        precio_diario=0,
+        estado="DISPONIBLE",
+    )
+    db.add(incorporated)
+    vehicle.estado = "DISPONIBLE"
+    db.commit()
+    db.refresh(incorporated)
+    return incorporated
 
 def update_validacion(db: Session, vehiculo_externo_id: str, tipo: str, valida: bool):
     vehicle = get_by_correlation_id(db, vehiculo_externo_id)
