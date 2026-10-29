@@ -10,6 +10,14 @@ function fromProtoVehicle(vehicle) {
   };
 }
 
+function fromProtoExternalVehicle(vehicle) {
+  return {
+    ...vehicle,
+    tipo: fromProtoEnum('TIPO_VEHICULO', vehicle.tipo),
+    estado: fromProtoEnum('ESTADO_INCORPORACION', vehicle.estado),
+  };
+}
+
 function invalidArgument(message) {
   const error = new Error(message);
   error.code = grpc.status.INVALID_ARGUMENT;
@@ -147,13 +155,13 @@ export const vehicleClient = {
       tipo: toProtoEnum('TIPO_VEHICULO', payload.tipo),
       documento: payload.documento || '',
     });
-    return response.vehiculo;
+    return fromProtoExternalVehicle(response.vehiculo);
   },
 
   async listExternal(clienteId) {
     const response = await callGrpc('vehicle', 'ListarVehiculosExternos', {
       clienteId: String(clienteId),
     });
-    return response.vehiculos || [];
+    return (response.vehiculos || []).map(fromProtoExternalVehicle);
   },
 };
