@@ -5,6 +5,7 @@ from google.protobuf.timestamp_pb2 import Timestamp
 from app.db import SessionLocal
 from app.repository import RentalRepository
 from app.generated.rental.v1 import rental_pb2, rental_pb2_grpc
+from app import vehicle_client
 
 class RentalServiceServicer(rental_pb2_grpc.RentalServiceServicer):
 
@@ -63,6 +64,20 @@ class RentalServiceServicer(rental_pb2_grpc.RentalServiceServicer):
             context.abort(grpc.StatusCode.INVALID_ARGUMENT, "Cliente y vehículo son obligatorios")
         if not math.isfinite(request.precio_diario) or request.precio_diario <= 0:
             context.abort(grpc.StatusCode.INVALID_ARGUMENT, "El precio diario debe ser mayor que cero")
+        try:
+            operativo = vehicle_client.is_operational(request.vehiculo_id)
+        except ValueError as error:
+            context.abort(grpc.StatusCode.INVALID_ARGUMENT, str(error))
+        except grpc.RpcError as error:
+            context.abort(
+                error.code() or grpc.StatusCode.UNAVAILABLE,
+                error.details() or "No se pudo verificar la operatividad del vehículo",
+            )
+        if not operativo:
+            context.abort(
+                grpc.StatusCode.FAILED_PRECONDITION,
+                "El vehículo no se encuentra operativo",
+            )
 
         days = math.ceil((end - start).total_seconds() / 86400)
         total = days * request.precio_diario

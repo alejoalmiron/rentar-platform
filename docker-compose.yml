@@ -21,7 +21,7 @@ services:
       MYSQL_DATABASE: customer_db
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?Set MYSQL_ROOT_PASSWORD in .env}
     ports:
-      - "3307:3306"
+      - "3310:3306"
     volumes:
       - customer_data:/var/lib/mysql
     healthcheck:
@@ -75,6 +75,24 @@ services:
       rabbitmq:
         condition: service_healthy
     restart: "no"
+
+  # NUEVO SERVICIO: Worker de Verificación Policial
+  verificacion-worker:
+    build:
+      context: ./workers
+      dockerfile: Dockerfile
+    command: ["python", "-u", "verificacion_worker.py"]
+    volumes:
+      - ./workers:/app
+    environment:
+      RABBITMQ_URL: amqp://${RABBITMQ_USER}:${RABBITMQ_PASS}@rabbitmq:5672
+      PYTHONUNBUFFERED: 1
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      broker-init:
+        condition: service_completed_successfully
+    restart: unless-stopped
 
   vehicle-service:
     build: ./services/vehicle-service
@@ -156,10 +174,13 @@ services:
         condition: service_healthy
 
   rental-service:
-    build: ./services/rental-service
+    build:
+      context: .
+      dockerfile: services/rental-service/Dockerfile
     environment:
       DATABASE_URL: mysql+pymysql://root:${MYSQL_ROOT_PASSWORD:?Set MYSQL_ROOT_PASSWORD in .env}@rental-db:3306/rental_db
       RABBITMQ_URL: amqp://${RABBITMQ_USER}:${RABBITMQ_PASS}@rabbitmq:5672
+      VEHICLE_GRPC_ADDRESS: vehicle-service:50051
       PYTHONPATH: /app:/app/app/generated
       PYTHONUNBUFFERED: 1
     ports:
@@ -171,6 +192,8 @@ services:
         condition: service_healthy
       broker-init:
         condition: service_completed_successfully
+      vehicle-service:
+        condition: service_started
 
   api-gateway:
     build:

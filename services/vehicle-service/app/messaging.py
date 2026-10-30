@@ -84,8 +84,16 @@ class EventBus:
     def _consume_loop(self, queue_name, routing_key, on_event):
         while True:
             try:
-                self._connect()
-                channel = self._connection.channel()
+                # 1. Crear una conexión TOTALMENTE AISLADA para este hilo consumidor
+                params = pika.URLParameters(self.url)
+                params.heartbeat = 600
+                consumer_connection = pika.BlockingConnection(params)
+                channel = consumer_connection.channel()
+
+                # 2. Declarar la infraestructura en este canal independiente
+                channel.exchange_declare(exchange=EXCHANGE, exchange_type=ExchangeType.topic, durable=True)
+                channel.exchange_declare(exchange=DLX_EXCHANGE, exchange_type=ExchangeType.fanout, durable=True)
+                
                 channel.queue_declare(
                     queue=queue_name,
                     durable=True,
@@ -103,16 +111,18 @@ class EventBus:
                         ch.basic_nack(delivery_tag=method.delivery_tag, requeue=False)
 
                 channel.basic_consume(queue=queue_name, on_message_callback=_callback)
-                print(f"Escuchando eventos en la cola {queue_name}...")
+                print(f"Escuchando eventos en la cola {queue_name} (conexión aislada)...")
                 channel.start_consuming()
             except Exception as error:
                 print(f"Consumidor {queue_name} caido ({error}). Reintentando en 5s...")
-                self._connection = None
                 time.sleep(5)
 
     def close(self):
         if self._connection and not self._connection.is_closed:
             self._connection.close()
+
+# Instancia global para ser usada por todo el microservicio
+event_bus = EventBus()
 
 
 def procesar_incorporacion_completada(evento):

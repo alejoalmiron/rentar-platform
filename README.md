@@ -98,11 +98,16 @@ docker compose --env-file .env.example up --build -d
 
 | Acceso | URL |
 | --- | --- |
-| Interfaz web | http://localhost:5173 |
-| API REST | http://localhost:5000/api |
-| Swagger (documentación REST) | http://localhost:5000/api-docs |
-| GraphQL (sandbox) | http://localhost:5000/graphql |
-| Panel de RabbitMQ | http://localhost:15672 (usuario `RABBITMQ_USER` / `RABBITMQ_PASS`) |
+| Frontend | `http://localhost:5173` |
+| API Gateway REST | `http://localhost:5000/api` |
+| GraphQL | `http://localhost:5000/graphql` |
+| Swagger REST | `http://localhost:5000/api-docs` |
+| Vehicle Service gRPC | `localhost:50051` |
+| Customer Service gRPC | `localhost:50052` |
+| Rental Service gRPC | `localhost:50053` |
+| RabbitMQ (AMQP) | `localhost:5672` |
+| RabbitMQ Management | `http://localhost:15672` (usuario `RABBITMQ_USER` / `RABBITMQ_PASS`) |
+| MySQL Customer / Vehicle / Rental | `localhost:3310` / `3308` / `3309` |
 
 Para detener el sistema: `docker compose down`. Los datos persisten en volúmenes de Docker; `docker compose down -v` los borra.
 

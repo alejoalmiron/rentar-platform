@@ -1,12 +1,45 @@
 import grpc
 from sqlalchemy.exc import IntegrityError
+from sqlalchemy import text
 
 from .db import SessionLocal
 from .generated import vehicle_pb2, vehicle_pb2_grpc
+from .messaging import event_bus, EVENTO_VERIFICACION_SOLICITADA
 from . import external_repository, repository
 
 TIPOS_VALIDOS = {"SEDAN", "SUV", "PICKUP", "COUPE", "HATCHBACK"}
 ESTADOS_VALIDOS = {"DISPONIBLE", "RESERVADO", "EN_ALQUILER"}
+
+def handle_verificacion_resultado(payload):
+    """Procesa el resultado asíncrono de la verificación de patente."""
+    vehiculo_id = payload.get("vehiculoId")
+    resultado = payload.get("resultado")
+    
+    if not vehiculo_id or not resultado:
+        return
+
+    print(f"Recibido resultado de verificación: Vehículo {vehiculo_id} -> {resultado}")
+    db = SessionLocal()
+    try:
+        if resultado == "ROBADO":
+            query = text(
+                "UPDATE vehiculos "
+                "SET estado_verificacion = :resultado, operativo = FALSE "
+                "WHERE id = :id"
+            )
+        else:
+            query = text("UPDATE vehiculos SET estado_verificacion = :resultado WHERE id = :id")
+        result = db.execute(query, {"resultado": resultado, "id": vehiculo_id})
+        db.commit()
+        
+        # Esto nos dirá si realmente encontró el vehículo en la tabla
+        print(f"Vehículo {vehiculo_id} procesado. Filas modificadas en BD: {result.rowcount}")
+        
+    except Exception as e:
+        db.rollback()
+        print(f"ERROR AL ACTUALIZAR EN BD: {e}")
+    finally:
+        db.close()
 
 
 def _enum_a_texto(enum_type, prefijo, valor):
@@ -20,7 +53,6 @@ def _texto_a_enum(enum_type, prefijo, texto):
         return enum_type.Value(f"{prefijo}{texto}")
     except ValueError:
         return 0
-
 
 class VehicleServiceServicer(vehicle_pb2_grpc.VehicleServiceServicer):
 
@@ -87,13 +119,29 @@ class VehicleServiceServicer(vehicle_pb2_grpc.VehicleServiceServicer):
             context.abort(grpc.StatusCode.INVALID_ARGUMENT, "Los datos del vehículo son inválidos")
         data["patente"] = patente
         db = SessionLocal()
+        vehiculo_id = None
+        patente = None
+        
         try:
             v = repository.create(db, data)
+            # Guardamos los datos antes de cerrar la sesión para usarlos en el evento
+            vehiculo_id = v.id
+            patente = v.patente
         except IntegrityError:
             db.rollback()
             context.abort(grpc.StatusCode.ALREADY_EXISTS, "La patente ya está registrada")
         finally:
             db.close()
+            
+        # Generar evento asíncrono solicitando verificación
+        if vehiculo_id and patente:
+            try:
+                event_bus.publish(
+                    EVENTO_VERIFICACION_SOLICITADA,
+                    {"vehiculoId": vehiculo_id, "patente": patente}
+                )
+            except Exception as e:
+                print(f"Advertencia: Error publicando evento de verificación - {e}")
         return vehicle_pb2.CrearVehiculoResponse(vehiculo=self._to_proto(v))
 
     def ActualizarVehiculo(self, request, context):
@@ -130,7 +178,7 @@ class VehicleServiceServicer(vehicle_pb2_grpc.VehicleServiceServicer):
         if not v:
             context.abort(grpc.StatusCode.NOT_FOUND, "Vehículo no encontrado")
         return vehicle_pb2.VerificarOperatividadResponse(operativo=v.operativo)
-    
+
     def _to_proto_externo(self, vehicle):
         return vehicle_pb2.VehiculoExterno(
             id=vehicle.id,

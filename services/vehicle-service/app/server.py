@@ -8,21 +8,32 @@ import os
 load_dotenv()
 
 from app.generated import vehicle_pb2_grpc
-from app.service import VehicleServiceServicer
+from app.service import VehicleServiceServicer, handle_verificacion_resultado
 from app.messaging import (
     COLA_INCORPORACIONES_COMPLETADAS,
+    COLA_RESULTADOS_VERIFICACION,
     EVENTO_EXTERNO_COMPLETADO,
-    EventBus,
+    EVENTO_VERIFICACION_RESULTADO,
+    event_bus,
     procesar_incorporacion_completada,
 )
 
 def serve():
     alembic_config = Config(os.path.join(os.path.dirname(__file__), "..", "alembic.ini"))
     command.upgrade(alembic_config, "head")
+    
+    # Arrancar consumidor de RabbitMQ en segundo plano
+    print("Iniciando consumidores de RabbitMQ...")
+    event_bus.start_consumer(
+        queue_name=COLA_RESULTADOS_VERIFICACION,
+        routing_key=EVENTO_VERIFICACION_RESULTADO,
+        on_event=handle_verificacion_resultado
+    )
+    
     port = os.getenv("PORT", "50051")
     server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
     vehicle_pb2_grpc.add_VehicleServiceServicer_to_server(VehicleServiceServicer(), server)
-    EventBus().start_consumer(
+    event_bus.start_consumer(
         COLA_INCORPORACIONES_COMPLETADAS,
         EVENTO_EXTERNO_COMPLETADO,
         procesar_incorporacion_completada,

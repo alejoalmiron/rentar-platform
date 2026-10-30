@@ -29,6 +29,24 @@ class VehicleServiceTests(unittest.TestCase):
     def test_database_pool_checks_connections_before_reusing_them(self):
         self.assertTrue(engine.pool._pre_ping)
 
+    def test_stolen_verification_disables_vehicle(self):
+        with patch.object(service, "SessionLocal", return_value=self.db):
+            service.handle_verificacion_resultado({"vehiculoId": 15, "resultado": "ROBADO"})
+
+        statement, parameters = self.db.execute.call_args.args
+        self.assertIn("operativo = FALSE", str(statement))
+        self.assertEqual(parameters, {"resultado": "ROBADO", "id": 15})
+        self.db.commit.assert_called_once()
+
+    def test_valid_verification_does_not_change_operability(self):
+        with patch.object(service, "SessionLocal", return_value=self.db):
+            service.handle_verificacion_resultado({"vehiculoId": 15, "resultado": "VALIDADO"})
+
+        statement, parameters = self.db.execute.call_args.args
+        self.assertNotIn("operativo", str(statement))
+        self.assertEqual(parameters, {"resultado": "VALIDADO", "id": 15})
+        self.db.commit.assert_called_once()
+
     def test_get_vehicles_returns_data_and_closes_session(self):
         vehicle = Mock(
             id=7,
