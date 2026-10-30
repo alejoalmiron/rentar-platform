@@ -21,7 +21,14 @@ def handle_verificacion_resultado(payload):
     print(f"Recibido resultado de verificación: Vehículo {vehiculo_id} -> {resultado}")
     db = SessionLocal()
     try:
-        query = text("UPDATE vehiculos SET estado_verificacion = :resultado WHERE id = :id")
+        if resultado == "ROBADO":
+            query = text(
+                "UPDATE vehiculos "
+                "SET estado_verificacion = :resultado, operativo = FALSE "
+                "WHERE id = :id"
+            )
+        else:
+            query = text("UPDATE vehiculos SET estado_verificacion = :resultado WHERE id = :id")
         result = db.execute(query, {"resultado": resultado, "id": vehiculo_id})
         db.commit()
         

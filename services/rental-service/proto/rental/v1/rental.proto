@@ -18,16 +18,18 @@ import "google/protobuf/timestamp.proto";
 
 // RentalService gestiona el ciclo de vida de las reservas de vehículos:
 // creación con control de disponibilidad, consulta, cancelación e historial.
-// Es el único dueño de la base rental_db.
+// Es el único dueño de la base rental_db. Antes de crear una renta valida
+// la operatividad del vehículo consultando VehicleService.
 service RentalService {
   // Crea una reserva en estado ESTADO_RENTA_CONFIRMADA. Calcula el importe
   // total como días de alquiler (redondeados hacia arriba) por precio diario.
-  // Bloquea el vehículo durante la operación para evitar reservas solapadas
-  // concurrentes.
+  // Verifica que el vehículo esté operativo y lo bloquea durante la operación
+  // para evitar reservas solapadas concurrentes.
   // Errores: INVALID_ARGUMENT si faltan datos, la fecha de inicio no es futura,
   // la fecha de fin no es posterior al inicio o el precio diario no es
-  // positivo; ALREADY_EXISTS si el vehículo ya tiene una reserva confirmada
-  // que se superpone; UNAVAILABLE si no se pudo bloquear el vehículo.
+  // positivo; FAILED_PRECONDITION si el vehículo no está operativo;
+  // ALREADY_EXISTS si ya tiene una reserva confirmada que se superpone;
+  // UNAVAILABLE si VehicleService no responde o no se pudo bloquear el vehículo.
   rpc CrearRenta(CrearRentaRequest) returns (CrearRentaResponse);
 
   // Obtiene una reserva por id.
@@ -89,7 +91,8 @@ message Renta {
 message CrearRentaRequest {
   // Id del cliente, previamente validado como existente y activo. Obligatorio.
   string cliente_id = 1;
-  // Id del vehículo, previamente validado como activo y operativo. Obligatorio.
+  // Id numérico del vehículo. RentalService consulta a VehicleService y
+  // rechaza la renta si el vehículo no existe o no está operativo.
   string vehiculo_id = 2;
   // Inicio del período. Obligatorio; debe ser posterior al momento actual.
   google.protobuf.Timestamp fecha_inicio = 3;

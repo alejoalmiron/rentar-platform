@@ -3,8 +3,13 @@ import json
 import os
 import time
 
+try:
+    from common import topology
+except ImportError:
+    from workers.common import topology
+
 RABBITMQ_URL = os.getenv("RABBITMQ_URL", "amqp://guest:guest@rabbitmq:5672/")
-EXCHANGE = "rentar.events"
+QUEUE_NAME = "verificador_patentes.solicitudes"
 
 def procesar_verificacion(ch, method, properties, body):
     data = json.loads(body)
@@ -15,7 +20,7 @@ def procesar_verificacion(ch, method, properties, body):
     time.sleep(2)  # Simular latencia de red externa
     
     # 4. Se consulte un registro propio que simule la información policial.
-    patentes_robadas = ["ROBADA123", "XYZ999"]
+    patentes_robadas = ["ROBADA123", "XYZ999", "XYZ111", "XYZ123"]
     
     resultado = "ROBADO" if patente in patentes_robadas else "VALIDADO"
     
@@ -28,8 +33,8 @@ def procesar_verificacion(ch, method, properties, body):
     
     # Publicar el resultado de vuelta al mismo Exchange
     ch.basic_publish(
-        exchange=EXCHANGE,
-        routing_key='vehiculos.verificacion.resultado',
+        exchange=topology.EXCHANGE,
+        routing_key=topology.EVENTOS["VEHICULO_VERIFICACION_RESULTADO"],
         body=json.dumps(respuesta),
         properties=pika.BasicProperties(delivery_mode=2)
     )
@@ -44,11 +49,23 @@ def start_worker():
     channel = connection.channel()
     
     # Usar el exchange correcto de la topología
-    channel.exchange_declare(exchange=EXCHANGE, exchange_type='topic', durable=True)
+    channel.exchange_declare(
+        exchange=topology.EXCHANGE,
+        exchange_type='topic',
+        durable=True,
+    )
     
     # Declarar la cola de solicitudes y vincularla al exchange
-    queue = channel.queue_declare(queue='verificacion.solicitada.queue', durable=True)
-    channel.queue_bind(exchange=EXCHANGE, queue=queue.method.queue, routing_key='vehiculos.verificacion.solicitada')
+    queue = channel.queue_declare(
+        queue=QUEUE_NAME,
+        durable=True,
+        arguments={"x-dead-letter-exchange": topology.DLX_EXCHANGE},
+    )
+    channel.queue_bind(
+        exchange=topology.EXCHANGE,
+        queue=queue.method.queue,
+        routing_key=topology.COLAS[QUEUE_NAME],
+    )
     
     channel.basic_qos(prefetch_count=1)
     channel.basic_consume(queue=queue.method.queue, on_message_callback=procesar_verificacion)

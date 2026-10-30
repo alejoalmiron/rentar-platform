@@ -28,7 +28,8 @@ if _version_not_supported:
 class RentalServiceStub(object):
     """RentalService gestiona el ciclo de vida de las reservas de vehículos:
     creación con control de disponibilidad, consulta, cancelación e historial.
-    Es el único dueño de la base rental_db.
+    Es el único dueño de la base rental_db. Antes de crear una renta valida
+    la operatividad del vehículo consultando VehicleService.
     """
 
     def __init__(self, channel):
@@ -72,18 +73,20 @@ class RentalServiceStub(object):
 class RentalServiceServicer(object):
     """RentalService gestiona el ciclo de vida de las reservas de vehículos:
     creación con control de disponibilidad, consulta, cancelación e historial.
-    Es el único dueño de la base rental_db.
+    Es el único dueño de la base rental_db. Antes de crear una renta valida
+    la operatividad del vehículo consultando VehicleService.
     """
 
     def CrearRenta(self, request, context):
         """Crea una reserva en estado ESTADO_RENTA_CONFIRMADA. Calcula el importe
         total como días de alquiler (redondeados hacia arriba) por precio diario.
-        Bloquea el vehículo durante la operación para evitar reservas solapadas
-        concurrentes.
+        Verifica que el vehículo esté operativo y lo bloquea durante la operación
+        para evitar reservas solapadas concurrentes.
         Errores: INVALID_ARGUMENT si faltan datos, la fecha de inicio no es futura,
         la fecha de fin no es posterior al inicio o el precio diario no es
-        positivo; ALREADY_EXISTS si el vehículo ya tiene una reserva confirmada
-        que se superpone; UNAVAILABLE si no se pudo bloquear el vehículo.
+        positivo; FAILED_PRECONDITION si el vehículo no está operativo;
+        ALREADY_EXISTS si ya tiene una reserva confirmada que se superpone;
+        UNAVAILABLE si VehicleService no responde o no se pudo bloquear el vehículo.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -177,7 +180,8 @@ def add_RentalServiceServicer_to_server(servicer, server):
 class RentalService(object):
     """RentalService gestiona el ciclo de vida de las reservas de vehículos:
     creación con control de disponibilidad, consulta, cancelación e historial.
-    Es el único dueño de la base rental_db.
+    Es el único dueño de la base rental_db. Antes de crear una renta valida
+    la operatividad del vehículo consultando VehicleService.
     """
 
     @staticmethod
