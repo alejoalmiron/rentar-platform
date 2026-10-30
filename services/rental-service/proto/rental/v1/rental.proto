@@ -85,6 +85,9 @@ message Renta {
   EstadoRenta estado = 6;
   // Importe total en pesos: días de alquiler por precio diario.
   double precio_total = 7;
+  // Mantenimiento preventivo asociado: PENDIENTE hasta recibir el evento
+  // mantenimiento.resultado; luego REALIZADO o NO_REALIZADO.
+  string resultado_mantenimiento = 8;
 }
 
 // Solicitud de CrearRenta.

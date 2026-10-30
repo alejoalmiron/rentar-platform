@@ -26,6 +26,7 @@ export const COLAS = {
   'rental_service.mantenimiento_resultados': EVENTOS.MANTENIMIENTO_RESULTADO,
 };
 
+// Conexión única, reutilizada entre llamadas; se descarta si se cierra.
 let connection = null;
 let channel = null;
 

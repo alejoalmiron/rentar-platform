@@ -2,6 +2,7 @@ import { customerClient } from '../grpc/customer.client.js';
 import { toHttpError } from '../grpc/httpErrors.js';
 import { revokeToken, signToken } from '../auth/jwt.js';
 
+// Customer Service valida la contraseña; el Gateway emite el JWT.
 export async function login(req, res) {
   const { username, password } = req.body || {};
   if (!username || !password) {

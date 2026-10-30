@@ -60,6 +60,7 @@ class VehicleServiceTests(unittest.TestCase):
             tipo="SEDAN",
             precio_diario=45000.0,
             estado="DISPONIBLE",
+            estado_verificacion="VALIDADO",
         )
 
         with (
@@ -79,10 +80,12 @@ class VehicleServiceTests(unittest.TestCase):
         created = Mock(
             id=8, marca="Ford", modelo="Ranger", patente="AC456DE", operativo=True, activo=True,
             anio=2023, color=None, tipo="PICKUP", precio_diario=60000.0, estado="DISPONIBLE",
+            estado_verificacion="PENDIENTE",
         )
         with (
             patch.object(service, "SessionLocal", return_value=self.db),
             patch.object(service.repository, "create", return_value=created) as create,
+            patch.object(service, "publicar"),
         ):
             response = self.servicer.CrearVehiculo(
                 vehicle_pb2.CrearVehiculoRequest(

@@ -1,6 +1,6 @@
 # Contratos de eventos — Rentar (Hito 3)
 
-Documentación de los eventos que circulan por el broker **RabbitMQ**. Este archivo es la fuente de verdad: productores y consumidores deben respetar estos nombres y estructuras.
+Documentación de los eventos que circulan por el broker **RabbitMQ**. Este archivo es la fuente de verdad: productores y consumidores respetan estos nombres y estructuras.
 
 ## Infraestructura
 
@@ -55,7 +55,7 @@ Informa el resultado de la verificación de patente.
 }
 ```
 
-`resultado`: `VALIDADO` | `ROBADO`. Si es `ROBADO`, el vehículo queda inhabilitado para nuevas operaciones (sin crear un estado operativo nuevo).
+`resultado`: `VALIDADO` | `ROBADO`. Vehicle Service guarda el valor en `estado_verificacion`. Si es `ROBADO`, además pone `operativo = false`: el vehículo queda inhabilitado para nuevas operaciones y sus estados siguen siendo `DISPONIBLE` / `EN_ALQUILER`.
 
 ### 3. `vehiculos.externos.registrados`
 
@@ -79,7 +79,7 @@ Un cliente registró un vehículo propio para incorporarlo al sistema (comienza 
 
 ### 4. `vehiculos.externos.validacion.patente`
 
-Resultado de la validación de patente del vehículo externo.
+Resultado de la validación de patente del vehículo externo: `RECHAZADO` si la patente figura denunciada en `workers/common/registro_policial.py`.
 
 | | |
 | --- | --- |
@@ -128,11 +128,11 @@ Todas las validaciones de la incorporación resultaron `VALIDADO`.
 }
 ```
 
-Si alguna validación es `RECHAZADO`, este evento **no se emite** y el vehículo no se incorpora.
+Si alguna validación es `RECHAZADO`, este evento **no se emite**: el correlador marca la solicitud como `RECHAZADO` y el vehículo no se incorpora. El correlador guarda cada resultado en `vehiculos_externos` (`patente_validada`, `titularidad_validada`), de modo que no pierde el progreso si se reinicia.
 
 ### 7. `reserva.confirmada`
 
-Una reserva quedó confirmada. La confirmación **no espera** al mantenimiento (fire-and-forget).
+Una reserva quedó confirmada. La confirmación **no espera** al mantenimiento: Rental Service publica el evento en segundo plano y responde al Gateway sin depender del broker. `reservaId` es el UUID de la reserva.
 
 | | |
 | --- | --- |
@@ -141,7 +141,7 @@ Una reserva quedó confirmada. La confirmación **no espera** al mantenimiento (
 
 ```json
 {
-  "reservaId": 150,
+  "reservaId": "45073ee4-a202-4f52-bdc3-ccd4bc2aa933",
   "vehiculoId": 15,
   "fechaInicio": "2026-10-10T10:00:00",
   "fechaFin": "2026-10-15T10:00:00"
@@ -159,37 +159,28 @@ Resultado del mantenimiento preventivo asociado a la reserva.
 
 ```json
 {
-  "reservaId": 150,
+  "reservaId": "45073ee4-a202-4f52-bdc3-ccd4bc2aa933",
   "vehiculoId": 15,
   "resultado": "REALIZADO"
 }
 ```
 
-`resultado`: `REALIZADO` | `NO_REALIZADO`.
+`resultado`: `REALIZADO` | `NO_REALIZADO`. El taller simulado no llega a realizarlo si la reserva comienza en menos de 24 horas.
 
 ## Convenciones
 
 - **Formato:** JSON UTF-8, `content-type: application/json`, entrega persistente.
 - **Fechas:** ISO-8601 (`YYYY-MM-DDTHH:mm:ss`).
 - **Correlación:** los eventos de un mismo proceso comparten el identificador del agregado (`vehiculoId`, `vehiculoExternoId` o `reservaId`).
-- **Identificadores:** numéricos para entidades del dominio interno (`vehiculoId`, `reservaId`); `clienteId` conserva el UUID/string del Customer Service.
+- **Identificadores:** `vehiculoId` y `vehiculoExternoId` son numéricos; `reservaId` y `clienteId` conservan el UUID de Rental Service y Customer Service.
 - **Helpers:** Python → `workers/common/messaging.py` (workers) y `app/messaging.py` dentro de cada servicio; Node → `src/messaging/rabbitmq.js`. Todos implementan conexión con reintentos, publicación y consumo con ack/nack a DLQ.
 - **Declaración de topología:** `python workers/common/declare_topology.py` o `docker compose run --rm broker-init`.
 - **Schemas:** [contratos.schema.json](contratos.schema.json). Productores deben respetar `required` y los `enum` de `resultado`.
 
-## Cómo usan esto los demás integrantes
+## Participantes por flujo
 
-Los flujos de negocio (verificación de patentes, saga de vehículos externos, mantenimiento) **no** se implementan acá. Cada integrante escribe productores/consumidores contra estos contratos:
-
-| Integrante | Publica | Consume |
+| Flujo | Productores | Consumidores |
 | --- | --- | --- |
-| 2 — Verificación de patentes | `vehiculos.verificacion.solicitada`, `vehiculos.verificacion.resultado` | Vehicle: resultados; worker verificador: solicitudes |
-| 3 — Incorporación externa | `vehiculos.externos.registrados`, validaciones parciales, `...completada` | validadores + correlador + Vehicle |
-| 4 — Mantenimiento | `reserva.confirmada`, `mantenimiento.resultado` | worker mantenimiento + Rental |
-
-Pruebas E2E de cada flujo (cuando existan los workers):
-
-1. Verificar en `http://localhost:15672` que existen `rentar.events`, `rentar.dlx`, `rentar.dlq` y las 9 colas de consumidores.
-2. Disparar el caso de negocio y confirmar que el mensaje llega a la cola correcta (Ready/Unacked).
-3. Caso feliz y caso de rechazo/DLQ (handler que lanza excepción → mensaje en `rentar.dlq`).
-4. En mantenimiento: la confirmación de reserva responde sin esperar `mantenimiento.resultado`.
+| Verificación de vehículos | Vehicle Service, `verificacion-worker` | `verificacion-worker`, Vehicle Service |
+| Incorporación de externos | Vehicle Service, `validador-patente`, `validador-titularidad`, `correlador-externos` | `validador-patente`, `validador-titularidad`, `correlador-externos`, Vehicle Service |
+| Mantenimiento preventivo | Rental Service, `mantenimiento-worker` | `mantenimiento-worker`, Rental Service |

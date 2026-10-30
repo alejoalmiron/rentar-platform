@@ -1,3 +1,4 @@
+// Middlewares de Express: exigen sesión (401) y rol permitido (403).
 import { authenticateRequest, requireRoles } from './jwt.js';
 
 export function requireAuth(req, res, next) {

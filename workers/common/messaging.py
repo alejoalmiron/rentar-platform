@@ -31,6 +31,7 @@ class RabbitMQ:
         self._connection = None
         self._channel = None
 
+    # Reintenta porque, al levantar el stack, el broker puede tardar en estar listo.
     def _connect(self):
         if self._connection and not self._connection.is_closed:
             return
@@ -53,6 +54,7 @@ class RabbitMQ:
         self._connect()
         return self._channel
 
+    # --- Topologia: declarar es idempotente, por eso todos pueden hacerlo sin coordinarse ---
     def declare_infrastructure(self):
         """Declara exchange principal, DLX y DLQ. Idempotente."""
         channel = self.channel
@@ -80,6 +82,7 @@ class RabbitMQ:
         for queue_name in topology.COLAS:
             self.declare_queue(queue_name)
 
+    # --- Publicacion y consumo ---
     def publish(self, routing_key, payload):
         """Publica un evento JSON persistente."""
         self.channel.basic_publish(
@@ -105,6 +108,7 @@ class RabbitMQ:
                 channel = self.channel
                 self.declare_infrastructure()
                 self.declare_queue(queue_name)
+                # De a un mensaje: no se entrega otro hasta confirmar el anterior.
                 channel.basic_qos(prefetch_count=1)
 
                 def _callback(ch, method, _properties, body):

@@ -4,6 +4,7 @@ import { respondWithRpc } from './rpcResponse.js';
 
 export const crearReserva = async (req, res) => {
   const reservationInput = { ...(req.body || {}) };
+  // Un cliente solo reserva a su nombre: su identidad sale del token, no del pedido.
   if (req.auth.role === 'CLIENTE') {
     reservationInput.clienteId = req.auth.customerId;
     delete reservationInput.clienteDni;

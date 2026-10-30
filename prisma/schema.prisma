@@ -1,3 +1,4 @@
+// Modelo de datos del Hito 1. Se conserva como referencia: desde el Hito 2 cada servicio tiene su base.
 generator client {
   provider = "prisma-client-js"
 }

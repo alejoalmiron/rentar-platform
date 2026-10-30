@@ -14,6 +14,7 @@ const QUERY_HISTORIAL = `
       fechaFin
       estado
       montoTotal
+      resultadoMantenimiento
       cliente {
         dni
         nombre
@@ -87,6 +88,7 @@ export default function HistorialPagina() {
     { header: 'Fecha Inicio', accessor: 'fechaInicio' },
     { header: 'Fecha Fin', accessor: 'fechaFin' },
     { header: 'Monto Total', accessor: (row) => `$${row.montoTotal}` },
+    { header: 'Mantenimiento', accessor: 'resultadoMantenimiento' },
     {
       header: 'Estado',
       accessor: (row) => (

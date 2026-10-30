@@ -1,3 +1,4 @@
+// Coordina a los tres servicios para crear una reserva. No guarda datos ni accede a bases.
 import { customerClient } from '../grpc/customer.client.js';
 import { rentalClient } from '../grpc/rental.client.js';
 import { vehicleClient } from '../grpc/vehicle.client.js';
@@ -12,6 +13,7 @@ function assertAllowed(result, description) {
 
 export async function createReservation(input) {
   const { clienteId, vehiculoId, clienteDni, vehiculoPatente, fechaInicio, fechaFin } = input;
+  // Fase 1: obtiene cliente y vehículo; se necesitan sus ids reales y el precio diario.
   const [customer, vehicle] = await Promise.all([
     clienteId !== undefined
       ? customerClient.getById(clienteId)
@@ -21,6 +23,7 @@ export async function createReservation(input) {
       : vehicleClient.getByPlate(vehiculoPatente),
   ]);
 
+  // Fase 2: las tres validaciones van en paralelo, así se espera solo a la más lenta.
   const [customerValidation, vehicleValidation, reservationAvailability] = await Promise.all([
     customerClient.validate({ id: customer.id, documento: customer.documento || customer.dni }),
     vehicleClient.checkOperational({ id: vehicle.id, patente: vehicle.patente }),
@@ -45,6 +48,7 @@ export async function createReservation(input) {
     throw error;
   }
 
+  // Fase 3: Rental vuelve a controlar el solapamiento por si hubo un pedido simultáneo.
   return rentalClient.create({
     clienteId: customer.id,
     vehiculoId: vehicle.id,

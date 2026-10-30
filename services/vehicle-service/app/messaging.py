@@ -125,6 +125,15 @@ class EventBus:
 event_bus = EventBus()
 
 
+def publicar(routing_key, payload):
+    """Publica con una conexion propia: pika no es seguro entre hilos gRPC."""
+    bus = EventBus()
+    try:
+        bus.publish(routing_key, payload)
+    finally:
+        bus.close()
+
+
 def procesar_incorporacion_completada(evento):
     from .db import SessionLocal
     from . import external_repository

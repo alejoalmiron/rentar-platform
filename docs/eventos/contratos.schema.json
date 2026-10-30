@@ -83,14 +83,14 @@
       "additionalProperties": false,
       "required": ["reservaId", "vehiculoId", "fechaInicio", "fechaFin"],
       "properties": {
-        "reservaId": { "type": "integer", "minimum": 1 },
+        "reservaId": { "type": "string", "minLength": 1 },
         "vehiculoId": { "type": "integer", "minimum": 1 },
         "fechaInicio": { "type": "string", "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}$" },
         "fechaFin": { "type": "string", "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}$" }
       },
       "examples": [
         {
-          "reservaId": 150,
+          "reservaId": "45073ee4-a202-4f52-bdc3-ccd4bc2aa933",
           "vehiculoId": 15,
           "fechaInicio": "2026-10-10T10:00:00",
           "fechaFin": "2026-10-15T10:00:00"
@@ -102,11 +102,11 @@
       "additionalProperties": false,
       "required": ["reservaId", "vehiculoId", "resultado"],
       "properties": {
-        "reservaId": { "type": "integer", "minimum": 1 },
+        "reservaId": { "type": "string", "minLength": 1 },
         "vehiculoId": { "type": "integer", "minimum": 1 },
         "resultado": { "type": "string", "enum": ["REALIZADO", "NO_REALIZADO"] }
       },
-      "examples": [{ "reservaId": 150, "vehiculoId": 15, "resultado": "REALIZADO" }]
+      "examples": [{ "reservaId": "45073ee4-a202-4f52-bdc3-ccd4bc2aa933", "vehiculoId": 15, "resultado": "REALIZADO" }]
     }
   }
 }

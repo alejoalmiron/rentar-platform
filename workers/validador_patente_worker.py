@@ -1,18 +1,12 @@
 from common.messaging import RabbitMQ
 from common import topology
-
-
-REGISTRO_PATENTES = {
-    "DEF456",
-    "AA123BB",
-    "ABC123",
-}
+from common.registro_policial import PATENTES_DENUNCIADAS
 
 
 def procesar_validacion_patente(evento):
     vehiculo_externo_id = evento.get("vehiculoExternoId") or evento.get("vehiculo_externo_id")
     patente = (evento.get("patente") or "").strip().upper()
-    resultado = "VALIDADO" if patente in REGISTRO_PATENTES else "RECHAZADO"
+    resultado = "RECHAZADO" if patente in PATENTES_DENUNCIADAS else "VALIDADO"
     payload = {
         "vehiculoExternoId": vehiculo_externo_id,
         "patente": patente,

@@ -1,6 +1,8 @@
+// Emisión y verificación de tokens JWT, y control de roles.
 import { randomUUID } from 'node:crypto';
 import jwt from 'jsonwebtoken';
 
+// Tokens cerrados con logout, hasta que venzan. Se guardan en memoria del Gateway.
 const revokedTokens = new Map();
 const tokenLifetimeSeconds = 8 * 60 * 60;
 

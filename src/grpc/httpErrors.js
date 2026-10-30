@@ -1,3 +1,4 @@
+// Traduce los códigos de error gRPC a respuestas HTTP y a errores GraphQL.
 import grpc from '@grpc/grpc-js';
 
 const grpcToHttpStatus = new Map([
@@ -23,6 +24,7 @@ export function toHttpError(error) {
   };
 }
 
+// GraphQL informa el error dentro de errors[].extensions, no con el estado HTTP.
 export function toGraphqlError(error) {
   const mapped = toHttpError(error);
   const graphqlError = new Error(mapped.body.error);

@@ -84,6 +84,7 @@ class RentalOperativityGuardTests(unittest.TestCase):
             patch.object(service.vehicle_client, "is_operational", return_value=True) as check,
             patch.object(service, "SessionLocal", return_value=db),
             patch.object(service.RentalRepository, "crear_renta", return_value=Mock()) as create_rental,
+            patch.object(service, "publicareventoreservaconfirmada"),
             patch.object(
                 service.RentalServiceServicer,
                 "_to_proto",

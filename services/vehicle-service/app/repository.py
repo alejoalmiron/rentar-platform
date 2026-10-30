@@ -16,6 +16,7 @@ class VehicleModel(Base):
     tipo = Column(String(20), nullable=True)
     precio_diario = Column(Float, nullable=True)
     estado = Column(String(20), nullable=False, default="DISPONIBLE")
+    estado_verificacion = Column(String(50), nullable=False, default="PENDIENTE")
 
 def get_all(db: Session):
     return db.query(VehicleModel).filter(VehicleModel.activo == True).all()

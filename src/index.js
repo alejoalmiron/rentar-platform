@@ -1,3 +1,4 @@
+// Punto de entrada del API Gateway: monta REST, GraphQL y Swagger sobre Express.
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
@@ -29,6 +30,7 @@ app.use(express.json());
 
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
+// Rutas REST: cada grupo de URLs se delega a su archivo en routes/.
 app.use('/api/auth', authRoutes);
 app.use('/api/vehiculos', vehiculoRoutes);
 app.use('/api/clientes', clienteRoutes);
@@ -39,6 +41,7 @@ app.get('/', (req, res) => {
   res.json({ mensaje: 'API Rentar funcionando correctamente' });
 });
 
+// Apollo debe arrancar antes de montarse; el contexto le pasa a los resolvers la sesión del JWT.
 async function startServer() {
   if (process.env.NODE_ENV === 'production') validateJwtConfiguration();
   const server = new ApolloServer({ 
@@ -65,6 +68,7 @@ startServer().catch((error) => {
   process.exitCode = 1;
 });
 
+// Apagado ordenado: termina los pedidos en curso y cierra las conexiones gRPC.
 for (const signal of ['SIGINT', 'SIGTERM']) {
   process.once(signal, () => {
     httpServer?.close(() => {

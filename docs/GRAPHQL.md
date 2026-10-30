@@ -53,7 +53,7 @@ Los roles reconocidos son `ADMIN` y `CLIENTE`. El Gateway valida la firma y venc
 ### Enums
 
 - `TipoVehiculo`: `SEDAN`, `SUV`, `PICKUP`, `COUPE`, `HATCHBACK`.
-- `EstadoVehiculo`: `DISPONIBLE`, `RESERVADO`, `EN_ALQUILER`.
+- `EstadoVehiculo`: `DISPONIBLE`, `EN_ALQUILER`.
 - `EstadoReserva`: `CONFIRMADA`, `CANCELADA`, `FINALIZADA`.
 
 No hay tipos `input` GraphQL: las operaciones reciben argumentos escalares. Las fechas se envían como `String` ISO-8601 y los importes como `Float`.
