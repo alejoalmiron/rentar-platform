@@ -6,7 +6,7 @@ const options = {
     info: {
       title: 'API Rentar - Sistema de Alquiler de Vehículos',
       version: '1.0.0',
-      description: 'Documentación de los endpoints REST para el Hito 1 (UNLa)',
+      description: 'Documentación de los endpoints REST del API Gateway (UNLa)',
     },
     servers: [
       {
@@ -19,6 +19,7 @@ const options = {
       { name: 'Vehiculos', description: 'ABM de vehiculos' },
       { name: 'Clientes', description: 'ABM de clientes' },
       { name: 'Reservas', description: 'Creacion y cancelacion de reservas' },
+      { name: 'Vehiculos externos', description: 'Incorporacion de vehiculos de clientes' },
     ],
     components: {
       securitySchemes: {
@@ -138,6 +139,10 @@ const options = {
         get: { tags: ['Vehiculos'], summary: 'Obtener vehiculo', responses: { 200: { description: 'Vehiculo encontrado' }, 404: { description: 'No encontrado' } } },
         put: { tags: ['Vehiculos'], summary: 'Modificar vehiculo', requestBody: { required: true, content: { 'application/json': { schema: { $ref: '#/components/schemas/Vehiculo' } } } }, responses: { 200: { description: 'Vehiculo actualizado' }, 400: { description: 'Operacion invalida' } } },
         delete: { tags: ['Vehiculos'], summary: 'Dar de baja vehiculo', responses: { 200: { description: 'Baja logica realizada' } } },
+      },
+      '/api/vehiculos-externos': {
+        get: { tags: ['Vehiculos externos'], summary: 'Listar las incorporaciones del cliente autenticado', responses: { 200: { description: 'Vehiculos externos con su estado: PENDIENTE, DISPONIBLE o RECHAZADO' }, 401: { description: 'Sesion requerida' }, 403: { description: 'Solo rol CLIENTE' } } },
+        post: { tags: ['Vehiculos externos'], summary: 'Registrar un vehiculo propio para incorporarlo', description: 'Responde sin esperar las validaciones: el vehiculo queda PENDIENTE hasta que el correlador reciba los resultados de patente y titularidad.', requestBody: { required: true, content: { 'application/json': { schema: { type: 'object', required: ['patente', 'marca', 'modelo', 'tipo', 'precioDiario'], properties: { patente: { type: 'string', example: 'DEF456' }, marca: { type: 'string', example: 'Citroen' }, modelo: { type: 'string', example: 'C3' }, anio: { type: 'integer', example: 2022 }, color: { type: 'string', example: 'Blanco' }, tipo: { type: 'string', enum: ['SEDAN', 'SUV', 'PICKUP', 'COUPE', 'HATCHBACK'] }, precioDiario: { type: 'number', example: 36000 } } } } } }, responses: { 201: { description: 'Solicitud registrada en estado PENDIENTE' }, 400: { description: 'Datos invalidos' }, 401: { description: 'Sesion requerida' }, 403: { description: 'Solo rol CLIENTE' }, 409: { description: 'La patente ya fue presentada' } } },
       },
       '/api/clientes': {
         get: { tags: ['Clientes'], summary: 'Listar clientes activos', responses: { 200: { description: 'Lista de clientes', content: { 'application/json': { schema: { type: 'array', items: { $ref: '#/components/schemas/Cliente' } } } } } } },

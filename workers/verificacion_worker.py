@@ -5,8 +5,10 @@ import time
 
 try:
     from common import topology
+    from common.registro_policial import PATENTES_DENUNCIADAS
 except ImportError:
     from workers.common import topology
+    from workers.common.registro_policial import PATENTES_DENUNCIADAS
 
 RABBITMQ_URL = os.getenv("RABBITMQ_URL", "amqp://guest:guest@rabbitmq:5672/")
 QUEUE_NAME = "verificador_patentes.solicitudes"
@@ -20,9 +22,8 @@ def procesar_verificacion(ch, method, properties, body):
     time.sleep(2)  # Simular latencia de red externa
     
     # 4. Se consulte un registro propio que simule la información policial.
-    patentes_robadas = ["ROBADA123", "XYZ999", "XYZ111", "XYZ123"]
     
-    resultado = "ROBADO" if patente in patentes_robadas else "VALIDADO"
+    resultado = "ROBADO" if patente in PATENTES_DENUNCIADAS else "VALIDADO"
     
     # 5. Se genere un nuevo evento informando el resultado de la verificación.
     respuesta = {

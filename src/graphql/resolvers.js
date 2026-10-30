@@ -22,6 +22,7 @@ async function safeLookup(operation) {
   }
 }
 
+// Rental solo guarda ids: se completan cliente y vehículo consultando a sus servicios.
 async function hydrateReservation(reservation) {
   const customerId = reservation.customerId ?? reservation.clienteId;
   const vehicleId = reservation.vehicleId ?? reservation.vehiculoId;
@@ -47,6 +48,7 @@ async function resolverGraphql(operation) {
 
 export const resolvers = {
   Query: {
+    // Un vehículo está disponible si está operativo y no tiene reservas en el período.
     vehiculosDisponibles: (_, filters, context) => resolverGraphql(async () => {
       requireGraphqlAuth(context);
       const { fechaInicio, fechaFin, ...vehicleFilters } = filters;

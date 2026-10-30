@@ -22,6 +22,7 @@ export default function VehiculosExternosPagina() {
     anio: '',
     color: '',
     tipo: 'SEDAN',
+    precioDiario: '',
   });
 
   const cargarVehiculos = useCallback(async () => {
@@ -55,6 +56,7 @@ export default function VehiculosExternosPagina() {
         marca: formulario.marca.trim(),
         modelo: formulario.modelo.trim(),
         anio: formulario.anio ? Number(formulario.anio) : null,
+        precioDiario: Number(formulario.precioDiario),
       });
       setFormulario({
         patente: '',
@@ -63,6 +65,7 @@ export default function VehiculosExternosPagina() {
         anio: '',
         color: '',
         tipo: 'SEDAN',
+        precioDiario: '',
       });
       await cargarVehiculos();
     } catch (error) {
@@ -77,6 +80,7 @@ export default function VehiculosExternosPagina() {
     { header: 'Marca', accessor: 'marca' },
     { header: 'Modelo', accessor: 'modelo' },
     { header: 'Tipo', accessor: 'tipo' },
+    { header: 'Precio Diario', accessor: (vehiculo) => `$${vehiculo.precioDiario}` },
     {
       header: 'Estado',
       accessor: (vehiculo) => (
@@ -97,6 +101,7 @@ export default function VehiculosExternosPagina() {
             <CampoTexto label="Modelo *" name="modelo" value={formulario.modelo} onChange={cambiarCampo} required />
             <CampoTexto label="Año" name="anio" type="number" value={formulario.anio} onChange={cambiarCampo} />
             <CampoTexto label="Color" name="color" value={formulario.color} onChange={cambiarCampo} />
+            <CampoTexto label="Precio Diario ($) *" name="precioDiario" type="number" value={formulario.precioDiario} onChange={cambiarCampo} required />
             <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
               <label htmlFor="tipo" style={{ fontWeight: '600', fontSize: '14px', color: '#374151' }}>Tipo</label>
               <select id="tipo" name="tipo" value={formulario.tipo} onChange={cambiarCampo} style={{ padding: '10px', borderRadius: '6px', border: '1px solid #d1d5db' }}>

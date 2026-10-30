@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Boolean
+from sqlalchemy import Column, Integer, String, Boolean, Float
 from sqlalchemy.orm import Session
 from .db import Base
 
@@ -14,6 +14,7 @@ class VehiculoExternoModel(Base):
     anio = Column(Integer, nullable=True)
     color = Column(String(50), nullable=True)
     tipo = Column(String(20), nullable=True)
+    precio_diario = Column(Float, nullable=False, default=0)
     estado = Column(String(20), nullable=False, default="PENDIENTE")
     activo = Column(Boolean, nullable=False, default=True)
     patente_validada = Column(Boolean, nullable=False, default=False)
@@ -53,31 +54,6 @@ def update(db: Session, vehicle_id: int, vehicle_data: dict):
         db.refresh(vehicle)
     return vehicle
 
-def incorporate(db: Session, vehiculo_externo_id: str):
-    vehicle = get_by_correlation_id(db, vehiculo_externo_id)
-    if not vehicle:
-        return None
-    from .repository import VehicleModel
-    incorporated = db.query(VehicleModel).filter(VehicleModel.patente == vehicle.patente).first()
-    if not incorporated:
-        incorporated = VehicleModel(
-            marca=vehicle.marca,
-            modelo=vehicle.modelo,
-            patente=vehicle.patente,
-            operativo=True,
-            activo=True,
-            anio=vehicle.anio,
-            color=vehicle.color,
-            tipo=vehicle.tipo,
-            precio_diario=0,
-            estado="DISPONIBLE",
-        )
-        db.add(incorporated)
-    vehicle.estado = "DISPONIBLE"
-    db.commit()
-    db.refresh(incorporated)
-    return incorporated
-
 def update_estado_by_correlation(db: Session, vehiculo_externo_id: str, nuevo_estado: str):
     vehicle = get_by_correlation_id(db, vehiculo_externo_id)
     if vehicle:
@@ -105,8 +81,9 @@ def incorporate(db: Session, vehiculo_externo_id: str):
         anio=vehicle.anio,
         color=vehicle.color,
         tipo=vehicle.tipo,
-        precio_diario=0,
+        precio_diario=vehicle.precio_diario,
         estado="DISPONIBLE",
+        estado_verificacion="VALIDADO",
     )
     db.add(incorporated)
     vehicle.estado = "DISPONIBLE"

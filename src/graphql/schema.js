@@ -17,8 +17,6 @@ export const typeDefs = `
   enum EstadoVehiculo {
     """Vehículo habilitado para operar."""
     DISPONIBLE
-    """Vehículo reservado según el estado persistido."""
-    RESERVADO
     """Vehículo actualmente en alquiler."""
     EN_ALQUILER
   }
@@ -45,6 +43,8 @@ export const typeDefs = `
     estado: EstadoVehiculo!
     """Indica si el registro continúa activo."""
     activo: Boolean!
+    """Resultado de la verificación policial: PENDIENTE, VALIDADO o ROBADO."""
+    estadoVerificacion: String
   }
 
   """Datos públicos de un cliente."""
@@ -75,6 +75,8 @@ export const typeDefs = `
     estado: EstadoReserva!
     """Importe calculado por Rental Service."""
     montoTotal: Float!
+    """Mantenimiento preventivo: PENDIENTE, REALIZADO o NO_REALIZADO."""
+    resultadoMantenimiento: String
     """Cliente asociado a la reserva; puede ser null si el registro ya no existe en Customer Service."""
     cliente: Cliente
     """Vehículo asociado a la reserva; puede ser null si el registro ya no existe en Vehicle Service."""

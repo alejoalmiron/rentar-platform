@@ -1,68 +1,96 @@
+"""Worker de mantenimiento preventivo (Hito 3).
+
+Consume reserva.confirmada, registra la solicitud en su propia tabla, simula el
+procesamiento y publica mantenimiento.resultado. Rental Service es quien asocia
+el resultado a la reserva, por lo que este componente no toca la tabla rentals.
+"""
+
 import os
-import json
+import threading
 import time
 import uuid
-import pika
-from sqlalchemy import create_engine, Column, String
-from sqlalchemy.orm import sessionmaker, declarative_base
-from app.repository import RentalRepository
+from datetime import datetime, timedelta
+
+from sqlalchemy import Column, String, create_engine
+from sqlalchemy.orm import declarative_base, sessionmaker
+
+from app.messaging import (
+    COLA_RESERVAS_CONFIRMADAS,
+    EVENTO_MANTENIMIENTO_RESULTADO,
+    EVENTO_RESERVA_CONFIRMADA,
+    EventBus,
+    publicar,
+)
 
 DATABASE_URL = os.getenv("DATABASE_URL", "mysql+pymysql://root:password@rental-db:3306/rental_db")
-RABBITMQ_URL = os.getenv("RABBITMQ_URL", "amqp://guest:guest@rabbitmq:5672")
+SEGUNDOS_PROCESAMIENTO = int(os.getenv("MANTENIMIENTO_SEGUNDOS", "3"))
+# El taller simulado necesita un dia de margen antes de entregar el vehiculo.
+ANTICIPACION_MINIMA = timedelta(hours=24)
 
-engine = create_engine(DATABASE_URL)
+engine = create_engine(DATABASE_URL, pool_pre_ping=True)
 SessionLocal = sessionmaker(bind=engine)
 Base = declarative_base()
 
-class MantenimientoLogModel(Base):
-    __tablename__ = "mantenimiento_logs"
+
+class SolicitudMantenimientoModel(Base):
+    __tablename__ = "mantenimiento_solicitudes"
+
     id = Column(String(36), primary_key=True)
-    renta_id = Column(String(36), nullable=False)
+    reserva_id = Column(String(36), nullable=False)
     vehiculo_id = Column(String(36), nullable=False)
-    resultado = Column(String(30), nullable=False)
+    fecha_inicio = Column(String(50), nullable=False)
+    fecha_fin = Column(String(50), nullable=False)
+    estado = Column(String(30), nullable=False, default="SOLICITADO")
 
-Base.metadata.create_all(bind=engine)
 
-def callback(ch, method, properties, body):
-    data = json.loads(body)
-    renta_id = data.get("renta_id")
-    vehiculo_id = data.get("vehiculo_id")
-    print(f" [x] Procesando mantenimiento preventivo para Renta: {renta_id}, Vehículo: {vehiculo_id}")
+def determinar_resultado(fecha_inicio):
+    margen = datetime.fromisoformat(fecha_inicio) - datetime.utcnow()
+    return "REALIZADO" if margen >= ANTICIPACION_MINIMA else "NO_REALIZADO"
 
-    # Simular procesamiento asíncrono
-    time.sleep(3)
-    resultado_mantenimiento = "REALIZADO"
+
+def procesar_reserva_confirmada(evento):
+    reserva_id = evento["reservaId"]
+    vehiculo_id = evento["vehiculoId"]
+    print(f"Procesando mantenimiento preventivo: reserva {reserva_id}, vehículo {vehiculo_id}")
 
     db = SessionLocal()
     try:
-        log_entry = MantenimientoLogModel(
+        solicitud = SolicitudMantenimientoModel(
             id=str(uuid.uuid4()),
-            renta_id=renta_id,
-            vehiculo_id=vehiculo_id,
-            resultado=resultado_mantenimiento
+            reserva_id=reserva_id,
+            vehiculo_id=str(vehiculo_id),
+            fecha_inicio=evento["fechaInicio"],
+            fecha_fin=evento["fechaFin"],
+            estado="SOLICITADO",
         )
-        db.add(log_entry)
+        db.add(solicitud)
         db.commit()
 
-        RentalRepository.actualizar_mantenimiento(db, renta_id, resultado_mantenimiento)
-        print(f" [✔] Mantenimiento {resultado_mantenimiento} guardado para la renta {renta_id}")
-    except Exception as e:
-        db.rollback()
-        print(f" [!] Error en worker de mantenimiento: {e}")
+        time.sleep(SEGUNDOS_PROCESAMIENTO)
+        resultado = determinar_resultado(evento["fechaInicio"])
+
+        solicitud.estado = resultado
+        db.commit()
     finally:
         db.close()
 
-    ch.basic_ack(delivery_tag=method.delivery_tag)
+    publicar(EVENTO_MANTENIMIENTO_RESULTADO, {
+        "reservaId": reserva_id,
+        "vehiculoId": vehiculo_id,
+        "resultado": resultado,
+    })
+
 
 def main():
-    params = pika.URLParameters(RABBITMQ_URL)
-    connection = pika.BlockingConnection(params)
-    channel = connection.channel()
-    channel.queue_declare(queue='reserva.confirmada', durable=True)
-    channel.basic_qos(prefetch_count=1)
-    channel.basic_consume(queue='reserva.confirmada', on_message_callback=callback)
-    print(' [*] Worker de Mantenimiento Preventivo esperando eventos...')
-    channel.start_consuming()
+    Base.metadata.create_all(bind=engine)
+    EventBus().start_consumer(
+        COLA_RESERVAS_CONFIRMADAS,
+        EVENTO_RESERVA_CONFIRMADA,
+        procesar_reserva_confirmada,
+    )
+    print("Worker de mantenimiento esperando eventos reserva.confirmada...")
+    threading.Event().wait()
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     main()

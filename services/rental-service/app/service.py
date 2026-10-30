@@ -1,37 +1,30 @@
 from datetime import datetime, timezone
 import math
-import json
-import os
-import pika
+import threading
 import grpc
 from google.protobuf.timestamp_pb2 import Timestamp
 from app.db import SessionLocal
 from app.repository import RentalRepository
 from app.generated.rental.v1 import rental_pb2, rental_pb2_grpc
 from app import vehicle_client
+from app.messaging import EVENTO_RESERVA_CONFIRMADA, publicar
 
-def publicareventoreservaconfirmada(rentaid: str, vehiculoid: str):
-    rabbitmqurl = os.getenv("RABBITMQ_URL", "amqp://guest:guest@localhost:5672/")
-    try:
-        params = pika.URLParameters(rabbitmqurl)
-        connection = pika.BlockingConnection(params)
-        channel = connection.channel()
-        channel.queue_declare(queue='reserva.confirmada', durable=True)
-        
-        mensaje = json.dumps({
-            "renta_id": rentaid,
-            "vehiculo_id": vehiculoid
-        })
-        
-        channel.basic_publish(
-            exchange='',
-            routing_key='reserva.confirmada',
-            body=mensaje,
-            properties=pika.BasicProperties(delivery_mode=2)
-        )
-        connection.close()
-    except Exception as e:
-        print(f"Error al publicar evento de reserva confirmada: {e}")
+def publicareventoreservaconfirmada(renta):
+    """Publica reserva.confirmada en segundo plano: la reserva nunca espera al broker."""
+    payload = {
+        "reservaId": renta.id,
+        "vehiculoId": int(renta.vehiculo_id),
+        "fechaInicio": renta.fecha_inicio[:19],
+        "fechaFin": renta.fecha_fin[:19],
+    }
+
+    def publicar_evento():
+        try:
+            publicar(EVENTO_RESERVA_CONFIRMADA, payload)
+        except Exception as e:
+            print(f"Error al publicar evento de reserva confirmada: {e}")
+
+    threading.Thread(target=publicar_evento, daemon=True).start()
 
 class RentalServiceServicer(rental_pb2_grpc.RentalServiceServicer):
 
@@ -79,6 +72,7 @@ class RentalServiceServicer(rental_pb2_grpc.RentalServiceServicer):
             fecha_fin=cls._to_timestamp(renta.fecha_fin),
             estado=rental_pb2.EstadoRenta.Value(f"ESTADO_RENTA_{renta.estado}"),
             precio_total=renta.precio_total,
+            resultado_mantenimiento=renta.resultado_mantenimiento or "",
         )
 
     def CrearRenta(self, request, context):
@@ -115,8 +109,7 @@ class RentalServiceServicer(rental_pb2_grpc.RentalServiceServicer):
             }
             try:
                 nueva_renta = RentalRepository.crear_renta(db, datos_renta)
-                # Publicar evento renombrado sin guiones bajos
-                publicareventoreservaconfirmada(nueva_renta.id, nueva_renta.vehiculo_id)
+                publicareventoreservaconfirmada(nueva_renta)
             except ValueError as error:
                 context.abort(grpc.StatusCode.ALREADY_EXISTS, str(error))
             except TimeoutError as error:

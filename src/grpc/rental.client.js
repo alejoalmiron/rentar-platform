@@ -1,3 +1,4 @@
+// Cliente de Rental Service: reservas, disponibilidad e historial.
 import { callGrpc } from './clientFactory.js';
 import { fromProtoEnum } from './enums.js';
 import { normalizeDates, toTimestamp } from './timestamps.js';

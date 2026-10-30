@@ -19,6 +19,7 @@ export const registrarVehiculoExterno = async (req, res) => {
       anio: req.body.anio ? Number(req.body.anio) : null,
       color: req.body.color,
       tipo: req.body.tipo,
+      precioDiario: req.body.precioDiario,
     };
 
     const vehiculoCreado = await vehicleClient.createExternal(payload);

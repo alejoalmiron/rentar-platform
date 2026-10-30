@@ -4,11 +4,11 @@ from sqlalchemy import text
 
 from .db import SessionLocal
 from .generated import vehicle_pb2, vehicle_pb2_grpc
-from .messaging import event_bus, EVENTO_VERIFICACION_SOLICITADA
+from .messaging import EVENTO_EXTERNO_REGISTRADO, EVENTO_VERIFICACION_SOLICITADA, publicar
 from . import external_repository, repository
 
 TIPOS_VALIDOS = {"SEDAN", "SUV", "PICKUP", "COUPE", "HATCHBACK"}
-ESTADOS_VALIDOS = {"DISPONIBLE", "RESERVADO", "EN_ALQUILER"}
+ESTADOS_VALIDOS = {"DISPONIBLE", "EN_ALQUILER"}
 
 def handle_verificacion_resultado(payload):
     """Procesa el resultado asíncrono de la verificación de patente."""
@@ -69,6 +69,7 @@ class VehicleServiceServicer(vehicle_pb2_grpc.VehicleServiceServicer):
             tipo=_texto_a_enum(vehicle_pb2.TipoVehiculo, "TIPO_VEHICULO_", vehicle.tipo or ""),
             precio_diario=vehicle.precio_diario or 0,
             estado=_texto_a_enum(vehicle_pb2.EstadoVehiculo, "ESTADO_VEHICULO_", vehicle.estado),
+            estado_verificacion=vehicle.estado_verificacion or "",
         )
 
     def _vehicle_data(self, request, estado):
@@ -136,7 +137,7 @@ class VehicleServiceServicer(vehicle_pb2_grpc.VehicleServiceServicer):
         # Generar evento asíncrono solicitando verificación
         if vehiculo_id and patente:
             try:
-                event_bus.publish(
+                publicar(
                     EVENTO_VERIFICACION_SOLICITADA,
                     {"vehiculoId": vehiculo_id, "patente": patente}
                 )
@@ -152,6 +153,12 @@ class VehicleServiceServicer(vehicle_pb2_grpc.VehicleServiceServicer):
         data["operativo"] = request.operativo
         db = SessionLocal()
         try:
+            actual = repository.get_by_id(db, request.id)
+            if actual and actual.estado_verificacion == "ROBADO" and request.operativo:
+                context.abort(
+                    grpc.StatusCode.FAILED_PRECONDITION,
+                    "Un vehículo denunciado como robado no puede volver a habilitarse",
+                )
             v = repository.update(db, request.id, data)
         finally:
             db.close()
@@ -191,6 +198,7 @@ class VehicleServiceServicer(vehicle_pb2_grpc.VehicleServiceServicer):
             color=vehicle.color or "",
             tipo=_texto_a_enum(vehicle_pb2.TipoVehiculo, "TIPO_VEHICULO_", vehicle.tipo or ""),
             estado=_texto_a_enum(vehicle_pb2.EstadoIncorporacion, "ESTADO_INCORPORACION_", vehicle.estado),
+            precio_diario=vehicle.precio_diario or 0,
         )
 
     def CrearVehiculoExterno(self, request, context):
@@ -203,11 +211,13 @@ class VehicleServiceServicer(vehicle_pb2_grpc.VehicleServiceServicer):
             "anio": request.anio if request.anio > 0 else None,
             "color": request.color.strip() or None,
             "tipo": _enum_a_texto(vehicle_pb2.TipoVehiculo, "TIPO_VEHICULO_", request.tipo),
+            "precio_diario": request.precio_diario,
             "estado": "PENDIENTE",
         }
 
         if (not data["cliente_id"] or data["tipo"] not in TIPOS_VALIDOS
-                or not data["marca"] or not data["modelo"] or not data["patente"]):
+                or not data["marca"] or not data["modelo"] or not data["patente"]
+                or data["precio_diario"] <= 0):
             context.abort(grpc.StatusCode.INVALID_ARGUMENT, "Los datos obligatorios del vehículo externo son inválidos")
 
         db = SessionLocal()
@@ -219,8 +229,7 @@ class VehicleServiceServicer(vehicle_pb2_grpc.VehicleServiceServicer):
         finally:
             db.close()
 
-        from .messaging import EVENTO_EXTERNO_REGISTRADO, EventBus
-        EventBus().publish(EVENTO_EXTERNO_REGISTRADO, {
+        publicar(EVENTO_EXTERNO_REGISTRADO, {
             "vehiculoExternoId": v.id,
             "clienteId": v.cliente_id,
             "documento": request.documento.strip(),

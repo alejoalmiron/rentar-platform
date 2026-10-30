@@ -1,3 +1,4 @@
+// Cliente de Customer Service: login y gestión de clientes.
 import { callGrpc } from './clientFactory.js';
 import { fromProtoEnum } from './enums.js';
 
@@ -18,6 +19,7 @@ export const customerClient = {
   async getById(id) {
     return (await callGrpc('customer', 'ObtenerCliente', { id: String(id) })).cliente;
   },
+  // El contrato no busca por DNI: se resuelve sobre la lista.
   async getByDocument(documento) {
     const customers = await this.list();
     const customer = customers.find((item) => item.dni === documento);
@@ -49,6 +51,7 @@ export const customerClient = {
   async deactivate(id) {
     return (await callGrpc('customer', 'DarDeBajaCliente', { id: String(id) })).cliente;
   },
+  // Adapta la respuesta al formato común que usa el orquestador.
   validate({ id }) {
     return callGrpc('customer', 'ValidarClienteActivo', { id: String(id) })
       .then((response) => ({

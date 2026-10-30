@@ -1,3 +1,4 @@
+// Conversión de fechas entre texto ISO (web) y Timestamp { seconds, nanos } (gRPC).
 export function toTimestamp(value) {
   if (!value) return undefined;
   const date = new Date(value);

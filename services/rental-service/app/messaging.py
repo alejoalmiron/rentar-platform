@@ -20,6 +20,7 @@ DLQ = "rentar.dlq"
 EVENTO_RESERVA_CONFIRMADA = "reserva.confirmada"
 EVENTO_MANTENIMIENTO_RESULTADO = "mantenimiento.resultado"
 COLA_MANTENIMIENTO_RESULTADOS = "rental_service.mantenimiento_resultados"
+COLA_RESERVAS_CONFIRMADAS = "mantenimiento.reservas_confirmadas"
 
 
 class EventBus:
@@ -110,3 +111,12 @@ class EventBus:
     def close(self):
         if self._connection and not self._connection.is_closed:
             self._connection.close()
+
+
+def publicar(routing_key, payload):
+    """Publica con una conexion propia: pika no es seguro entre hilos."""
+    bus = EventBus()
+    try:
+        bus.publish(routing_key, payload)
+    finally:
+        bus.close()

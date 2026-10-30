@@ -1,3 +1,4 @@
+// Conexión con los microservicios: todos los clientes gRPC pasan por callGrpc.
 import path from 'node:path';
 import grpc from '@grpc/grpc-js';
 import protoLoader from '@grpc/proto-loader';
@@ -9,6 +10,7 @@ function getNestedValue(root, dottedPath) {
   return dottedPath.split('.').reduce((value, key) => value?.[key], root);
 }
 
+// Crea la conexión a cada servicio una sola vez y después la reutiliza.
 function getClient(serviceKey) {
   if (clients.has(serviceKey)) return clients.get(serviceKey);
 
@@ -43,6 +45,7 @@ function getClient(serviceKey) {
   return client;
 }
 
+// Convierte la llamada gRPC en una Promise y le aplica el plazo máximo de respuesta.
 export function callGrpc(serviceKey, method, request = {}) {
   return new Promise((resolve, reject) => {
     let client;

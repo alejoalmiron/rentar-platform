@@ -1,3 +1,4 @@
+// Cliente de Vehicle Service: valida datos de entrada y traduce los enums del contrato.
 import grpc from '@grpc/grpc-js';
 import { callGrpc } from './clientFactory.js';
 import { fromProtoEnum, toProtoEnum } from './enums.js';
@@ -40,6 +41,7 @@ function validateRequiredFields(vehicle, fields = ['marca', 'modelo', 'patente']
   }
 }
 
+// El contrato no tiene filtros: se pide la lista y se filtra en el Gateway.
 function filterVehicles(vehicles, filters) {
   const supportedFilters = new Set([
     'marca', 'modelo', 'patente', 'operativo', 'activo', 'tipo', 'precioMin', 'precioMax',
@@ -91,6 +93,7 @@ export const vehicleClient = {
     });
     return fromProtoVehicle(response.vehiculo);
   },
+  // ActualizarVehiculo reemplaza todos los datos: lo que no llega se completa con lo actual.
   async update(id, vehiculo) {
     const vehicleId = toVehicleId(id);
     const current = await this.getById(vehicleId);
@@ -143,6 +146,7 @@ export const vehicleClient = {
     };
   },
 
+  // Incorporación de vehículos de clientes (Hito 3).
   async createExternal(payload) {
     const response = await callGrpc('vehicle', 'CrearVehiculoExterno', {
       vehiculoExternoId: payload.vehiculoExternoId || '',
@@ -154,6 +158,7 @@ export const vehicleClient = {
       color: payload.color || '',
       tipo: toProtoEnum('TIPO_VEHICULO', payload.tipo),
       documento: payload.documento || '',
+      precioDiario: Number(payload.precioDiario),
     });
     return fromProtoExternalVehicle(response.vehiculo);
   },

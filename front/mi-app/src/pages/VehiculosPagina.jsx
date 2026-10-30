@@ -82,7 +82,8 @@ export default function VehiculosPagina() {
     { header: 'Año', accessor: 'anio' },
     { header: 'Color', accessor: 'color' },
     { header: 'Tipo', accessor: 'tipo' },
-    { header: 'Precio Diario', accessor: (row) => `$${row.precioDiario}` }
+    { header: 'Precio Diario', accessor: (row) => `$${row.precioDiario}` },
+    { header: 'Verificación', accessor: 'estadoVerificacion' }
   ];
 
   return (

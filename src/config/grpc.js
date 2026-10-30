@@ -1,3 +1,5 @@
+// Dirección y contrato .proto de cada microservicio.
+// Las direcciones salen del entorno porque cambian entre la PC local y Docker.
 import 'dotenv/config';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';

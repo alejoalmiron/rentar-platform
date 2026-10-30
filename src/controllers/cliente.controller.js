@@ -2,6 +2,7 @@ import { customerClient } from '../grpc/customer.client.js';
 import { respondWithRpc } from './rpcResponse.js';
 
 export const getClientes = async (req, res) => {
+  // El rol CLIENTE solo ve sus propios datos.
   if (req.auth.role === 'CLIENTE') {
     return respondWithRpc(
       res,

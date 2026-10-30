@@ -37,7 +37,7 @@ def serve():
             try:
                 reservaencontrada = sesiondb.query(RentalModel).filter(RentalModel.id == idreserva).first()
                 if reservaencontrada:
-                    reservaencontrada.resultadomantenimiento = resultadomantenimiento
+                    reservaencontrada.resultado_mantenimiento = resultadomantenimiento
                     sesiondb.commit()
                     print(f"Reserva {idreserva} actualizada con mantenimiento: {resultadomantenimiento}")
             except Exception as ex:

@@ -1,26 +1,9 @@
-import sqlite3
 import threading
 
+from app import external_repository
+from app.db import SessionLocal
 from common import topology
 from common.messaging import RabbitMQ
-
-DB_PATH = "correlador_externos.db"
-DB_LOCK = threading.Lock()
-
-
-def inicializar_estado():
-    with sqlite3.connect(DB_PATH) as db:
-        db.execute(
-            """
-            CREATE TABLE IF NOT EXISTS validaciones (
-                vehiculo_externo_id INTEGER PRIMARY KEY,
-                patente_validada INTEGER NOT NULL DEFAULT 0,
-                titularidad_validada INTEGER NOT NULL DEFAULT 0,
-                rechazada INTEGER NOT NULL DEFAULT 0
-            )
-            """
-        )
-        db.commit()
 
 
 def resultado_valido(evento):
@@ -36,35 +19,30 @@ def procesar_resultado(evento, campo_validacion):
     if not isinstance(vehiculo_externo_id, int) or vehiculo_externo_id < 1:
         raise ValueError("Falta vehiculoExternoId válido en el resultado de validación")
 
-    with DB_LOCK, sqlite3.connect(DB_PATH) as db:
-        db.execute(
-            "INSERT OR IGNORE INTO validaciones (vehiculo_externo_id) VALUES (?)",
-            (vehiculo_externo_id,),
-        )
+    correlacion = str(vehiculo_externo_id)
+    db = SessionLocal()
+    try:
+        if not external_repository.get_by_correlation_id(db, correlacion):
+            raise ValueError(f"Vehículo externo no encontrado: {vehiculo_externo_id}")
         if not resultado_valido(evento):
-            db.execute(
-                "UPDATE validaciones SET rechazada = 1 WHERE vehiculo_externo_id = ?",
-                (vehiculo_externo_id,),
-            )
-        else:
-            db.execute(
-                f"UPDATE validaciones SET {campo_validacion} = 1 WHERE vehiculo_externo_id = ?",
-                (vehiculo_externo_id,),
-            )
-        row = db.execute(
-            """
-            SELECT patente_validada, titularidad_validada, rechazada
-            FROM validaciones WHERE vehiculo_externo_id = ?
-            """,
-            (vehiculo_externo_id,),
-        ).fetchone()
-        db.commit()
+            external_repository.update_estado_by_correlation(db, correlacion, "RECHAZADO")
+            return
+        vehiculo = external_repository.update_validacion(db, correlacion, campo_validacion, True)
+        completo = (
+            vehiculo.estado == "PENDIENTE"
+            and vehiculo.patente_validada
+            and vehiculo.titularidad_validada
+        )
+    finally:
+        db.close()
 
-    if row == (1, 1, 0):
-        RabbitMQ().publish(
+    if completo:
+        bus = RabbitMQ()
+        bus.publish(
             topology.EVENTOS["VEHICULO_EXTERNO_VALIDACION_COMPLETADA"],
             {"vehiculoExternoId": vehiculo_externo_id},
         )
+        bus.close()
 
 
 def procesar_resultado_patente(evento):
@@ -76,7 +54,6 @@ def procesar_resultado_titularidad(evento):
 
 
 def main():
-    inicializar_estado()
     for queue_name, callback in (
         ("correlador_externos.resultados_patente", procesar_resultado_patente),
         ("correlador_externos.resultados_titularidad", procesar_resultado_titularidad),

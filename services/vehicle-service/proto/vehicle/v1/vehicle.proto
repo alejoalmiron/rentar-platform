@@ -76,8 +76,8 @@ enum EstadoVehiculo {
   ESTADO_VEHICULO_UNSPECIFIED = 0;
   // Puede reservarse. Es el estado inicial de todo vehículo dado de alta.
   ESTADO_VEHICULO_DISPONIBLE = 1;
-  // Tiene una reserva confirmada que todavía no comenzó.
-  ESTADO_VEHICULO_RESERVADO = 2;
+  reserved 2;
+  reserved "ESTADO_VEHICULO_RESERVADO";
   // Se encuentra alquilado en este momento.
   ESTADO_VEHICULO_EN_ALQUILER = 3;
 }
@@ -106,6 +106,9 @@ message Vehiculo {
   double precio_diario = 10;
   // Estado operativo respecto de los alquileres.
   EstadoVehiculo estado = 11;
+  // Resultado de la verificación policial: PENDIENTE, VALIDADO o ROBADO. No es
+  // un estado operativo: un vehículo ROBADO queda con operativo = false.
+  string estado_verificacion = 12;
 }
 
 // Solicitud de ListarVehiculos. No requiere parámetros.
@@ -238,6 +241,8 @@ message CrearVehiculoExternoRequest {
   TipoVehiculo tipo = 8;
   // DNI del cliente titular, requerido por el validador de titularidad.
   string documento = 9;
+  // Precio por día de alquiler una vez incorporado. Mayor que cero.
+  double precio_diario = 10;
 }
 
 // Respuesta de CrearVehiculoExterno.
@@ -268,6 +273,8 @@ message VehiculoExterno {
   TipoVehiculo tipo = 9;
   // Estado de incorporación.
   EstadoIncorporacion estado = 10;
+  // Precio por día de alquiler propuesto por el titular.
+  double precio_diario = 11;
 }
 
 // Solicitud de ListarVehiculosExternos.

@@ -23,6 +23,7 @@ export default function ReservasPagina() {
         fechaFin
         estado
         montoTotal
+        resultadoMantenimiento
         vehiculo {
           patente
           marca
@@ -92,6 +93,7 @@ export default function ReservasPagina() {
     { header: 'Fecha Fin', accessor: 'fechaFin' },
     { header: 'Monto Total', accessor: (row) => `$${row.montoTotal}` },
     { header: 'Estado', accessor: 'estado' },
+    { header: 'Mantenimiento', accessor: 'resultadoMantenimiento' },
     {
       header: 'Acciones',
       accessor: (row) =>
