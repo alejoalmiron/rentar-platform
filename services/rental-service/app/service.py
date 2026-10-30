@@ -1,11 +1,37 @@
 from datetime import datetime, timezone
 import math
+import json
+import os
+import pika
 import grpc
 from google.protobuf.timestamp_pb2 import Timestamp
 from app.db import SessionLocal
 from app.repository import RentalRepository
 from app.generated.rental.v1 import rental_pb2, rental_pb2_grpc
 from app import vehicle_client
+
+def publicareventoreservaconfirmada(rentaid: str, vehiculoid: str):
+    rabbitmqurl = os.getenv("RABBITMQ_URL", "amqp://guest:guest@localhost:5672/")
+    try:
+        params = pika.URLParameters(rabbitmqurl)
+        connection = pika.BlockingConnection(params)
+        channel = connection.channel()
+        channel.queue_declare(queue='reserva.confirmada', durable=True)
+        
+        mensaje = json.dumps({
+            "renta_id": rentaid,
+            "vehiculo_id": vehiculoid
+        })
+        
+        channel.basic_publish(
+            exchange='',
+            routing_key='reserva.confirmada',
+            body=mensaje,
+            properties=pika.BasicProperties(delivery_mode=2)
+        )
+        connection.close()
+    except Exception as e:
+        print(f"Error al publicar evento de reserva confirmada: {e}")
 
 class RentalServiceServicer(rental_pb2_grpc.RentalServiceServicer):
 
@@ -21,9 +47,6 @@ class RentalServiceServicer(rental_pb2_grpc.RentalServiceServicer):
 
     @staticmethod
     def _to_storage(moment):
-        # Formato canónico en la base: ISO-8601 UTC con milisegundos
-        # (igual a Date.toISOString), para que las comparaciones de texto
-        # del control de solapamiento respeten el orden cronológico.
         return moment.isoformat(timespec="milliseconds").replace("+00:00", "Z")
 
     @classmethod
@@ -92,6 +115,8 @@ class RentalServiceServicer(rental_pb2_grpc.RentalServiceServicer):
             }
             try:
                 nueva_renta = RentalRepository.crear_renta(db, datos_renta)
+                # Publicar evento renombrado sin guiones bajos
+                publicareventoreservaconfirmada(nueva_renta.id, nueva_renta.vehiculo_id)
             except ValueError as error:
                 context.abort(grpc.StatusCode.ALREADY_EXISTS, str(error))
             except TimeoutError as error:

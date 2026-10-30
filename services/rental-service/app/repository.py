@@ -13,6 +13,7 @@ class RentalModel(Base):
     fecha_fin = Column("fechaFin", String(50), nullable=False)
     estado = Column("estado", String(20), default="CONFIRMADA")
     precio_total = Column("precioTotal", Float, nullable=False)
+    resultado_mantenimiento = Column("resultadoMantenimiento", String(30), default="PENDIENTE")
 
 class RentalRepository:
     @staticmethod
@@ -28,9 +29,6 @@ class RentalRepository:
     @staticmethod
     def crear_renta(db: Session, datos_renta: dict) -> RentalModel:
         lock_name = f"rentar:vehicle:{datos_renta['vehiculoId']}"
-        # GET_LOCK pertenece a la conexión que lo toma. El commit de la sesión
-        # devuelve su conexión al pool, así que el lock usa una conexión propia
-        # para poder liberarlo siempre desde la misma.
         lock_conn = db.get_bind().connect()
         acquired = lock_conn.execute(text("SELECT GET_LOCK(:lock_name, 10)"), {"lock_name": lock_name}).scalar()
         if acquired != 1:
@@ -54,6 +52,7 @@ class RentalRepository:
                 fecha_fin=datos_renta["fechaFin"],
                 precio_total=datos_renta["precioTotal"],
                 estado="CONFIRMADA",
+                resultado_mantenimiento="PENDIENTE",
             )
             db.add(renta)
             db.commit()
@@ -88,6 +87,15 @@ class RentalRepository:
         renta = db.query(RentalModel).filter(RentalModel.id == renta_id).first()
         if renta:
             renta.estado = "CANCELADA"
+            db.commit()
+            db.refresh(renta)
+        return renta
+
+    @staticmethod
+    def actualizar_mantenimiento(db: Session, renta_id: str, resultado: str) -> RentalModel:
+        renta = db.query(RentalModel).filter(RentalModel.id == renta_id).first()
+        if renta:
+            renta.resultado_mantenimiento = resultado
             db.commit()
             db.refresh(renta)
         return renta

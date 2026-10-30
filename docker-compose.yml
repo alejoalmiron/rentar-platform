@@ -1,3 +1,5 @@
+version: '3.8'
+
 services:
   vehicle-db:
     image: mysql:8.0
@@ -194,6 +196,22 @@ services:
         condition: service_completed_successfully
       vehicle-service:
         condition: service_started
+
+  mantenimiento-worker:
+    build: ./services/rental-service
+    command: ["python", "app/mantenimiento_worker.py"]
+    environment:
+      DATABASE_URL: mysql+pymysql://root:${MYSQL_ROOT_PASSWORD:?Set MYSQL_ROOT_PASSWORD in .env}@rental-db:3306/rental_db
+      RABBITMQ_URL: amqp://${RABBITMQ_USER}:${RABBITMQ_PASS}@rabbitmq:5672
+      PYTHONPATH: /app:/app/app/generated
+      PYTHONUNBUFFERED: 1
+    depends_on:
+      rental-db:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      broker-init:
+        condition: service_completed_successfully
 
   api-gateway:
     build:
