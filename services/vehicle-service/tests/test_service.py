@@ -48,12 +48,64 @@ class VehicleServiceTests(unittest.TestCase):
             patch.object(service, "SessionLocal", return_value=self.db),
             patch.object(service.repository, "get_all", return_value=[vehicle]),
         ):
-            response = self.servicer.GetVehicles(vehicle_pb2.Empty(), self.context)
+            response = self.servicer.ListarVehiculos(vehicle_pb2.ListarVehiculosRequest(), self.context)
 
-        self.assertEqual(len(response.vehicles), 1)
-        self.assertEqual(response.vehicles[0].id, 7)
-        self.assertEqual(response.vehicles[0].patente, "AA123BB")
+        self.assertEqual(len(response.vehiculos), 1)
+        self.assertEqual(response.vehiculos[0].id, 7)
+        self.assertEqual(response.vehiculos[0].patente, "AA123BB")
+        self.assertEqual(response.vehiculos[0].tipo, vehicle_pb2.TIPO_VEHICULO_SEDAN)
+        self.assertEqual(response.vehiculos[0].estado, vehicle_pb2.ESTADO_VEHICULO_DISPONIBLE)
         self.db.close.assert_called_once()
+
+    def test_create_vehicle_starts_available_and_stores_domain_type(self):
+        created = Mock(
+            id=8, marca="Ford", modelo="Ranger", patente="AC456DE", operativo=True, activo=True,
+            anio=2023, color=None, tipo="PICKUP", precio_diario=60000.0, estado="DISPONIBLE",
+        )
+        with (
+            patch.object(service, "SessionLocal", return_value=self.db),
+            patch.object(service.repository, "create", return_value=created) as create,
+        ):
+            response = self.servicer.CrearVehiculo(
+                vehicle_pb2.CrearVehiculoRequest(
+                    marca="Ford",
+                    modelo="Ranger",
+                    patente="ac456de",
+                    anio=2023,
+                    tipo=vehicle_pb2.TIPO_VEHICULO_PICKUP,
+                    precio_diario=60000.0,
+                ),
+                self.context,
+            )
+
+        data = create.call_args.args[1]
+        self.assertEqual(data["estado"], "DISPONIBLE")
+        self.assertEqual(data["tipo"], "PICKUP")
+        self.assertEqual(data["patente"], "AC456DE")
+        self.assertEqual(response.vehiculo.tipo, vehicle_pb2.TIPO_VEHICULO_PICKUP)
+
+    def test_create_vehicle_rejects_unspecified_type(self):
+        with self.assertRaises(RpcAbort) as raised:
+            self.servicer.CrearVehiculo(
+                vehicle_pb2.CrearVehiculoRequest(
+                    marca="Ford", modelo="Ka", patente="AD789FG", anio=2020, precio_diario=30000.0,
+                ),
+                self.context,
+            )
+
+        self.assertEqual(raised.exception.status, grpc.StatusCode.INVALID_ARGUMENT)
+
+    def test_update_vehicle_rejects_unspecified_state(self):
+        with self.assertRaises(RpcAbort) as raised:
+            self.servicer.ActualizarVehiculo(
+                vehicle_pb2.ActualizarVehiculoRequest(
+                    id=7, marca="Toyota", modelo="Corolla", anio=2024,
+                    tipo=vehicle_pb2.TIPO_VEHICULO_SEDAN, precio_diario=45000.0,
+                ),
+                self.context,
+            )
+
+        self.assertEqual(raised.exception.status, grpc.StatusCode.INVALID_ARGUMENT)
 
     def test_get_vehicle_by_id_returns_not_found_and_closes_session(self):
         with (
@@ -61,7 +113,7 @@ class VehicleServiceTests(unittest.TestCase):
             patch.object(service.repository, "get_by_id", return_value=None),
             self.assertRaises(RpcAbort) as raised,
         ):
-            self.servicer.GetVehicleById(vehicle_pb2.VehicleIdRequest(id=42), self.context)
+            self.servicer.ObtenerVehiculo(vehicle_pb2.ObtenerVehiculoRequest(id=42), self.context)
 
         self.assertEqual(raised.exception.status, grpc.StatusCode.NOT_FOUND)
         self.db.close.assert_called_once()
@@ -73,14 +125,14 @@ class VehicleServiceTests(unittest.TestCase):
             patch.object(service.repository, "create", side_effect=error),
             self.assertRaises(RpcAbort) as raised,
         ):
-            self.servicer.CreateVehicle(
-                vehicle_pb2.CreateVehicleRequest(
+            self.servicer.CrearVehiculo(
+                vehicle_pb2.CrearVehiculoRequest(
                     marca="Toyota",
                     modelo="Corolla",
                     patente="AA123BB",
                     anio=2024,
                     color="Gris",
-                    tipo="SEDAN",
+                    tipo=vehicle_pb2.TIPO_VEHICULO_SEDAN,
                     precio_diario=45000.0,
                 ),
                 self.context,
@@ -96,7 +148,7 @@ class VehicleServiceTests(unittest.TestCase):
             patch.object(service.repository, "delete", return_value=None),
             self.assertRaises(RpcAbort) as raised,
         ):
-            self.servicer.DeleteVehicle(vehicle_pb2.VehicleIdRequest(id=42), self.context)
+            self.servicer.DarDeBajaVehiculo(vehicle_pb2.DarDeBajaVehiculoRequest(id=42), self.context)
 
         self.assertEqual(raised.exception.status, grpc.StatusCode.NOT_FOUND)
         self.db.close.assert_called_once()

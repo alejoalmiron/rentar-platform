@@ -1,61 +1,172 @@
+// Contrato gRPC del Rental Service de Rentar.
+//
+// Sigue las convenciones comunes descriptas en vehicle/v1/vehicle.proto:
+// servicio con nombre del enunciado, vocabulario del dominio en español,
+// request/response exclusivos por método, campos lower_snake_case y enums con
+// prefijo y valor 0 *_UNSPECIFIED.
+//
+// Fechas: todas las fechas y horas se representan con google.protobuf.Timestamp
+// (instante en UTC, precisión de milisegundos). El servicio no recibe la
+// identidad de cliente ni vehículo validada por sí mismo: el API Gateway
+// verifica previamente con CustomerService y VehicleService que ambos existan
+// y estén activos.
 syntax = "proto3";
 
 package rental.v1;
 
+import "google/protobuf/timestamp.proto";
+
+// RentalService gestiona el ciclo de vida de las reservas de vehículos:
+// creación con control de disponibilidad, consulta, cancelación e historial.
+// Es el único dueño de la base rental_db.
 service RentalService {
-  rpc CrearRenta (CrearRentaRequest) returns (RentaResponse);
-  rpc ObtenerRenta (ObtenerRentaRequest) returns (RentaResponse);
-  rpc ListarRentasPorCliente (ListarRentasPorClienteRequest) returns (ListarRentasResponse);
-  rpc CancelarRenta (CancelarRentaRequest) returns (RentaResponse);
-  rpc ObtenerHistorialRentas (ObtenerHistorialRentasRequest) returns (ListarRentasResponse);
-  rpc VerificarSolapamiento (VerificarSolapamientoRequest) returns (VerificarSolapamientoResponse);
+  // Crea una reserva en estado ESTADO_RENTA_CONFIRMADA. Calcula el importe
+  // total como días de alquiler (redondeados hacia arriba) por precio diario.
+  // Bloquea el vehículo durante la operación para evitar reservas solapadas
+  // concurrentes.
+  // Errores: INVALID_ARGUMENT si faltan datos, la fecha de inicio no es futura,
+  // la fecha de fin no es posterior al inicio o el precio diario no es
+  // positivo; ALREADY_EXISTS si el vehículo ya tiene una reserva confirmada
+  // que se superpone; UNAVAILABLE si no se pudo bloquear el vehículo.
+  rpc CrearRenta(CrearRentaRequest) returns (CrearRentaResponse);
+
+  // Obtiene una reserva por id.
+  // Errores: NOT_FOUND si no existe.
+  rpc ObtenerRenta(ObtenerRentaRequest) returns (ObtenerRentaResponse);
+
+  // Lista todas las reservas de un cliente, en cualquier estado.
+  rpc ListarRentasPorCliente(ListarRentasPorClienteRequest) returns (ListarRentasPorClienteResponse);
+
+  // Cancela una reserva cambiando su estado a ESTADO_RENTA_CANCELADA; el
+  // registro no se elimina. Una reserva cancelada libera el período para que
+  // el vehículo pueda volver a reservarse.
+  // Errores: NOT_FOUND si no existe; FAILED_PRECONDITION si ya estaba
+  // cancelada o si el período de alquiler ya comenzó.
+  rpc CancelarRenta(CancelarRentaRequest) returns (CancelarRentaResponse);
+
+  // Devuelve el historial de reservas ordenado por fecha de inicio
+  // descendente, incluyendo alquileres finalizados y reservas canceladas.
+  rpc ObtenerHistorialRentas(ObtenerHistorialRentasRequest) returns (ObtenerHistorialRentasResponse);
+
+  // Indica si un vehículo tiene alguna reserva confirmada que se superpone con
+  // el período solicitado. Las reservas canceladas no se consideran.
+  // Errores: INVALID_ARGUMENT si el período es inválido (mismas reglas que
+  // CrearRenta).
+  rpc VerificarSolapamiento(VerificarSolapamientoRequest) returns (VerificarSolapamientoResponse);
 }
 
-message RentaResponse {
+// Estado de una reserva.
+enum EstadoRenta {
+  // Valor por defecto de proto3; nunca se devuelve en una Renta.
+  ESTADO_RENTA_UNSPECIFIED = 0;
+  // Reserva creada correctamente; ocupa el período del vehículo.
+  ESTADO_RENTA_CONFIRMADA = 1;
+  // Reserva cancelada antes de comenzar; no ocupa el período.
+  ESTADO_RENTA_CANCELADA = 2;
+  // Alquiler cuyo período ya terminó.
+  ESTADO_RENTA_FINALIZADA = 3;
+}
+
+// Reserva de un vehículo por parte de un cliente.
+message Renta {
+  // Identificador UUID asignado por el servicio.
   string id = 1;
-  string clienteId = 2;
-  string vehiculoId = 3;
-  string fechaInicio = 4;
-  string fechaFin = 5;
-  string estado = 6; 
-  double precioTotal = 7;
+  // Id del cliente (CustomerService) que realizó la reserva.
+  string cliente_id = 2;
+  // Id del vehículo (VehicleService) reservado, como texto.
+  string vehiculo_id = 3;
+  // Inicio del período de alquiler.
+  google.protobuf.Timestamp fecha_inicio = 4;
+  // Fin del período de alquiler; siempre posterior a fecha_inicio.
+  google.protobuf.Timestamp fecha_fin = 5;
+  // Estado actual de la reserva.
+  EstadoRenta estado = 6;
+  // Importe total en pesos: días de alquiler por precio diario.
+  double precio_total = 7;
 }
 
+// Solicitud de CrearRenta.
 message CrearRentaRequest {
-  string clienteId = 1;
-  string vehiculoId = 2;
-  string fechaInicio = 3;
-  string fechaFin = 4;
-  double precioTotal = 5;
-  double precioDiario = 6;
+  // Id del cliente, previamente validado como existente y activo. Obligatorio.
+  string cliente_id = 1;
+  // Id del vehículo, previamente validado como activo y operativo. Obligatorio.
+  string vehiculo_id = 2;
+  // Inicio del período. Obligatorio; debe ser posterior al momento actual.
+  google.protobuf.Timestamp fecha_inicio = 3;
+  // Fin del período. Obligatorio; debe ser posterior a fecha_inicio.
+  google.protobuf.Timestamp fecha_fin = 4;
+  // Precio diario vigente del vehículo, obtenido de VehicleService.
+  // Obligatorio y mayor que cero.
+  double precio_diario = 5;
 }
 
+// Respuesta de CrearRenta.
+message CrearRentaResponse {
+  // Reserva creada, con id asignado e importe total calculado.
+  Renta renta = 1;
+}
+
+// Solicitud de ObtenerRenta.
 message ObtenerRentaRequest {
+  // Id de la reserva. Obligatorio.
   string id = 1;
 }
 
+// Respuesta de ObtenerRenta.
+message ObtenerRentaResponse {
+  // Reserva encontrada.
+  Renta renta = 1;
+}
+
+// Solicitud de ListarRentasPorCliente.
 message ListarRentasPorClienteRequest {
-  string clienteId = 1;
+  // Id del cliente cuyas reservas se consultan. Obligatorio.
+  string cliente_id = 1;
 }
 
-message ListarRentasResponse {
-  repeated RentaResponse rentas = 1;
+// Respuesta de ListarRentasPorCliente.
+message ListarRentasPorClienteResponse {
+  // Reservas del cliente.
+  repeated Renta rentas = 1;
 }
 
+// Solicitud de CancelarRenta.
 message CancelarRentaRequest {
+  // Id de la reserva a cancelar. Obligatorio.
   string id = 1;
 }
 
+// Respuesta de CancelarRenta.
+message CancelarRentaResponse {
+  // Reserva cancelada (estado ESTADO_RENTA_CANCELADA).
+  Renta renta = 1;
+}
+
+// Solicitud de ObtenerHistorialRentas.
 message ObtenerHistorialRentasRequest {
-  string clienteId = 1; 
+  // Id del cliente. Opcional: vacío devuelve el historial de todos los
+  // clientes (uso exclusivo del administrador, controlado por el Gateway).
+  string cliente_id = 1;
 }
 
+// Respuesta de ObtenerHistorialRentas.
+message ObtenerHistorialRentasResponse {
+  // Reservas ordenadas por fecha de inicio descendente.
+  repeated Renta rentas = 1;
+}
+
+// Solicitud de VerificarSolapamiento.
 message VerificarSolapamientoRequest {
-  string vehiculoId = 1;
-  string fechaInicio = 2;
-  string fechaFin = 3;
+  // Id del vehículo a verificar. Obligatorio.
+  string vehiculo_id = 1;
+  // Inicio del período. Obligatorio; debe ser posterior al momento actual.
+  google.protobuf.Timestamp fecha_inicio = 2;
+  // Fin del período. Obligatorio; debe ser posterior a fecha_inicio.
+  google.protobuf.Timestamp fecha_fin = 3;
 }
 
+// Respuesta de VerificarSolapamiento.
 message VerificarSolapamientoResponse {
-  bool haySolapamiento = 1;
+  // true si existe una reserva confirmada que se superpone con el período.
+  bool hay_solapamiento = 1;
 }

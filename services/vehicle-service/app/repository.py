@@ -44,4 +44,5 @@ def delete(db: Session, vehicle_id: int):
     if vehicle:
         vehicle.activo = False # Se da de baja sin borrar el registro
         db.commit()
+        db.refresh(vehicle)
     return vehicle

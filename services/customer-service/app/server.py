@@ -11,6 +11,8 @@ from app.customer.v1 import customer_pb2_grpc as pb2_grpc
 from .service import CustomerNotFoundError, CustomerServiceLogic, DuplicateCustomerError
 from .seed import seed_users
 
+ROLES_PROTO = {"ADMIN": pb2.ROL_ADMIN, "CLIENTE": pb2.ROL_CLIENTE}
+
 
 def seed_with_retry(max_attempts=20, delay_seconds=3):
     """Espera a que MySQL esté disponible antes de ejecutar el seed."""
@@ -25,81 +27,70 @@ def seed_with_retry(max_attempts=20, delay_seconds=3):
             time.sleep(delay_seconds)
 
 
-class CustomerServiceServicer(pb2_grpc.CustomerServiceServicer):
-    def ListCustomers(self, request, context):
-        customers = CustomerServiceLogic.list_customers()
-        response_list = [
-            pb2.CustomerResponse(
-                id=c.id, dni=c.dni, nombre=c.nombre, apellido=c.apellido,
-                email=c.email, activo=c.activo, telefono=c.telefono or ""
-            ) for c in customers
-        ]
-        return pb2.CustomerListResponse(customers=response_list)
+def _a_proto(c):
+    return pb2.Cliente(
+        id=c.id, dni=c.dni, nombre=c.nombre, apellido=c.apellido,
+        email=c.email, activo=c.activo, telefono=c.telefono or ""
+    )
 
-    def GetCustomerById(self, request, context):
+
+class CustomerServiceServicer(pb2_grpc.CustomerServiceServicer):
+    def ListarClientes(self, request, context):
+        customers = CustomerServiceLogic.list_customers()
+        return pb2.ListarClientesResponse(clientes=[_a_proto(c) for c in customers])
+
+    def ObtenerCliente(self, request, context):
         c = CustomerServiceLogic.get_customer_by_id(request.id)
         if not c:
             context.abort(grpc.StatusCode.NOT_FOUND, "Cliente no encontrado")
-        return pb2.CustomerResponse(
-            id=c.id, dni=c.dni, nombre=c.nombre, apellido=c.apellido,
-            email=c.email, activo=c.activo, telefono=c.telefono or ""
-        )
+        return pb2.ObtenerClienteResponse(cliente=_a_proto(c))
 
-    def CreateCustomer(self, request, context):
+    def CrearCliente(self, request, context):
         try:
             c = CustomerServiceLogic.create_customer(request)
-            return pb2.CustomerResponse(
-                id=c.id, dni=c.dni, nombre=c.nombre, apellido=c.apellido,
-                email=c.email, activo=c.activo, telefono=c.telefono or ""
-            )
+            return pb2.CrearClienteResponse(cliente=_a_proto(c))
         except DuplicateCustomerError as e:
             context.abort(grpc.StatusCode.ALREADY_EXISTS, str(e))
         except ValueError as e:
             context.abort(grpc.StatusCode.INVALID_ARGUMENT, str(e))
 
-    def UpdateCustomer(self, request, context):
+    def ActualizarCliente(self, request, context):
         try:
             c = CustomerServiceLogic.update_customer(request.id, request)
-            return pb2.CustomerResponse(
-                id=c.id, dni=c.dni, nombre=c.nombre, apellido=c.apellido,
-                email=c.email, activo=c.activo, telefono=c.telefono or ""
-            )
+            return pb2.ActualizarClienteResponse(cliente=_a_proto(c))
         except CustomerNotFoundError as e:
             context.abort(grpc.StatusCode.NOT_FOUND, str(e))
         except DuplicateCustomerError as e:
             context.abort(grpc.StatusCode.ALREADY_EXISTS, str(e))
 
-    def DeactivateCustomer(self, request, context):
+    def DarDeBajaCliente(self, request, context):
         try:
             c = CustomerServiceLogic.deactivate_customer(request.id)
-            return pb2.CustomerResponse(
-                id=c.id, dni=c.dni, nombre=c.nombre, apellido=c.apellido,
-                email=c.email, activo=c.activo, telefono=c.telefono or ""
-            )
+            return pb2.DarDeBajaClienteResponse(cliente=_a_proto(c))
         except CustomerNotFoundError as e:
             context.abort(grpc.StatusCode.NOT_FOUND, str(e))
 
-    def ValidateActiveCustomer(self, request, context):
+    def ValidarClienteActivo(self, request, context):
         result = CustomerServiceLogic.validate_customer_active(request.id)
-        return pb2.ValidateCustomerResponse(
-            exists=result["exists"],
-            is_active=result["is_active"],
-            message=result["message"]
+        return pb2.ValidarClienteActivoResponse(
+            existe=result["exists"],
+            activo=result["is_active"],
+            mensaje=result["message"]
         )
 
-    def AuthenticateUser(self, request, context):
-        if not request.username or not request.password:
+    def AutenticarUsuario(self, request, context):
+        if not request.usuario or not request.contrasena:
             context.abort(grpc.StatusCode.INVALID_ARGUMENT, "Usuario y contraseña son obligatorios")
-        user = CustomerServiceLogic.authenticate_user(request.username, request.password)
+        user = CustomerServiceLogic.authenticate_user(request.usuario, request.contrasena)
         if not user:
             context.abort(grpc.StatusCode.UNAUTHENTICATED, "Usuario o contraseña inválidos")
-        if user["role"] not in {"ADMIN", "CLIENTE"}:
+        if user["role"] not in ROLES_PROTO:
             context.abort(grpc.StatusCode.PERMISSION_DENIED, "El rol de la cuenta no es válido")
-        return pb2.AuthenticateUserResponse(
-            user_id=user["id"],
-            username=user["username"],
-            role=user["role"],
-            customer_id=user["customer_id"],
+        return pb2.AutenticarUsuarioResponse(
+            usuario_id=user["id"],
+            usuario=user["username"],
+            rol=ROLES_PROTO[user["role"]],
+            cliente_id=user["customer_id"],
         )
 
 def serve():

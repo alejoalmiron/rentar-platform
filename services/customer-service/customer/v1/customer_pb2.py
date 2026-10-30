@@ -24,31 +24,45 @@ _sym_db = _symbol_database.Default()
 
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x1a\x63ustomer/v1/customer.proto\x12\x0b\x63ustomer.v1\"\x07\n\x05\x45mpty\"l\n\x10\x43ustomerResponse\x12\n\n\x02id\x18\x01 \x01(\t\x12\x0b\n\x03\x64ni\x18\x02 \x01(\t\x12\x0e\n\x06nombre\x18\x03 \x01(\t\x12\x10\n\x08\x61pellido\x18\x04 \x01(\t\x12\r\n\x05\x65mail\x18\x05 \x01(\t\x12\x0e\n\x06\x61\x63tivo\x18\x06 \x01(\x08\"H\n\x14\x43ustomerListResponse\x12\x30\n\tcustomers\x18\x01 \x03(\x0b\x32\x1d.customer.v1.CustomerResponse\"!\n\x13\x43ustomerByIdRequest\x12\n\n\x02id\x18\x01 \x01(\t\"U\n\x15\x43reateCustomerRequest\x12\x0b\n\x03\x64ni\x18\x01 \x01(\t\x12\x0e\n\x06nombre\x18\x02 \x01(\t\x12\x10\n\x08\x61pellido\x18\x03 \x01(\t\x12\r\n\x05\x65mail\x18\x04 \x01(\t\"T\n\x15UpdateCustomerRequest\x12\n\n\x02id\x18\x01 \x01(\t\x12\x0e\n\x06nombre\x18\x02 \x01(\t\x12\x10\n\x08\x61pellido\x18\x03 \x01(\t\x12\r\n\x05\x65mail\x18\x04 \x01(\t\"\'\n\x19\x44\x65\x61\x63tivateCustomerRequest\x12\n\n\x02id\x18\x01 \x01(\t\"%\n\x17ValidateCustomerRequest\x12\n\n\x02id\x18\x01 \x01(\t\"N\n\x18ValidateCustomerResponse\x12\x0e\n\x06\x65xists\x18\x01 \x01(\x08\x12\x11\n\tis_active\x18\x02 \x01(\x08\x12\x0f\n\x07message\x18\x03 \x01(\t2\x9b\x04\n\x0f\x43ustomerService\x12\x46\n\rListCustomers\x12\x12.customer.v1.Empty\x1a!.customer.v1.CustomerListResponse\x12R\n\x0fGetCustomerById\x12 .customer.v1.CustomerByIdRequest\x1a\x1d.customer.v1.CustomerResponse\x12S\n\x0e\x43reateCustomer\x12\".customer.v1.CreateCustomerRequest\x1a\x1d.customer.v1.CustomerResponse\x12S\n\x0eUpdateCustomer\x12\".customer.v1.UpdateCustomerRequest\x1a\x1d.customer.v1.CustomerResponse\x12[\n\x12\x44\x65\x61\x63tivateCustomer\x12&.customer.v1.DeactivateCustomerRequest\x1a\x1d.customer.v1.CustomerResponse\x12\x65\n\x16ValidateActiveCustomer\x12$.customer.v1.ValidateCustomerRequest\x1a%.customer.v1.ValidateCustomerResponseb\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x1a\x63ustomer/v1/customer.proto\x12\x0b\x63ustomer.v1\"u\n\x07\x43liente\x12\n\n\x02id\x18\x01 \x01(\t\x12\x0b\n\x03\x64ni\x18\x02 \x01(\t\x12\x0e\n\x06nombre\x18\x03 \x01(\t\x12\x10\n\x08\x61pellido\x18\x04 \x01(\t\x12\r\n\x05\x65mail\x18\x05 \x01(\t\x12\x0e\n\x06\x61\x63tivo\x18\x06 \x01(\x08\x12\x10\n\x08telefono\x18\x07 \x01(\t\"\x17\n\x15ListarClientesRequest\"@\n\x16ListarClientesResponse\x12&\n\x08\x63lientes\x18\x01 \x03(\x0b\x32\x14.customer.v1.Cliente\"#\n\x15ObtenerClienteRequest\x12\n\n\x02id\x18\x01 \x01(\t\"?\n\x16ObtenerClienteResponse\x12%\n\x07\x63liente\x18\x01 \x01(\x0b\x32\x14.customer.v1.Cliente\"e\n\x13\x43rearClienteRequest\x12\x0b\n\x03\x64ni\x18\x01 \x01(\t\x12\x0e\n\x06nombre\x18\x02 \x01(\t\x12\x10\n\x08\x61pellido\x18\x03 \x01(\t\x12\r\n\x05\x65mail\x18\x04 \x01(\t\x12\x10\n\x08telefono\x18\x05 \x01(\t\"=\n\x14\x43rearClienteResponse\x12%\n\x07\x63liente\x18\x01 \x01(\x0b\x32\x14.customer.v1.Cliente\"i\n\x18\x41\x63tualizarClienteRequest\x12\n\n\x02id\x18\x01 \x01(\t\x12\x0e\n\x06nombre\x18\x02 \x01(\t\x12\x10\n\x08\x61pellido\x18\x03 \x01(\t\x12\r\n\x05\x65mail\x18\x04 \x01(\t\x12\x10\n\x08telefono\x18\x05 \x01(\t\"B\n\x19\x41\x63tualizarClienteResponse\x12%\n\x07\x63liente\x18\x01 \x01(\x0b\x32\x14.customer.v1.Cliente\"%\n\x17\x44\x61rDeBajaClienteRequest\x12\n\n\x02id\x18\x01 \x01(\t\"A\n\x18\x44\x61rDeBajaClienteResponse\x12%\n\x07\x63liente\x18\x01 \x01(\x0b\x32\x14.customer.v1.Cliente\")\n\x1bValidarClienteActivoRequest\x12\n\n\x02id\x18\x01 \x01(\t\"O\n\x1cValidarClienteActivoResponse\x12\x0e\n\x06\x65xiste\x18\x01 \x01(\x08\x12\x0e\n\x06\x61\x63tivo\x18\x02 \x01(\x08\x12\x0f\n\x07mensaje\x18\x03 \x01(\t\"?\n\x18\x41utenticarUsuarioRequest\x12\x0f\n\x07usuario\x18\x01 \x01(\t\x12\x12\n\ncontrasena\x18\x02 \x01(\t\"s\n\x19\x41utenticarUsuarioResponse\x12\x12\n\nusuario_id\x18\x01 \x01(\t\x12\x0f\n\x07usuario\x18\x02 \x01(\t\x12\x1d\n\x03rol\x18\x03 \x01(\x0e\x32\x10.customer.v1.Rol\x12\x12\n\ncliente_id\x18\x04 \x01(\t*:\n\x03Rol\x12\x13\n\x0fROL_UNSPECIFIED\x10\x00\x12\r\n\tROL_ADMIN\x10\x01\x12\x0f\n\x0bROL_CLIENTE\x10\x02\x32\xb2\x05\n\x0f\x43ustomerService\x12Y\n\x0eListarClientes\x12\".customer.v1.ListarClientesRequest\x1a#.customer.v1.ListarClientesResponse\x12Y\n\x0eObtenerCliente\x12\".customer.v1.ObtenerClienteRequest\x1a#.customer.v1.ObtenerClienteResponse\x12S\n\x0c\x43rearCliente\x12 .customer.v1.CrearClienteRequest\x1a!.customer.v1.CrearClienteResponse\x12\x62\n\x11\x41\x63tualizarCliente\x12%.customer.v1.ActualizarClienteRequest\x1a&.customer.v1.ActualizarClienteResponse\x12_\n\x10\x44\x61rDeBajaCliente\x12$.customer.v1.DarDeBajaClienteRequest\x1a%.customer.v1.DarDeBajaClienteResponse\x12k\n\x14ValidarClienteActivo\x12(.customer.v1.ValidarClienteActivoRequest\x1a).customer.v1.ValidarClienteActivoResponse\x12\x62\n\x11\x41utenticarUsuario\x12%.customer.v1.AutenticarUsuarioRequest\x1a&.customer.v1.AutenticarUsuarioResponseb\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
 _builder.BuildTopDescriptorsAndMessages(DESCRIPTOR, 'customer.v1.customer_pb2', _globals)
 if not _descriptor._USE_C_DESCRIPTORS:
   DESCRIPTOR._loaded_options = None
-  _globals['_EMPTY']._serialized_start=43
-  _globals['_EMPTY']._serialized_end=50
-  _globals['_CUSTOMERRESPONSE']._serialized_start=52
-  _globals['_CUSTOMERRESPONSE']._serialized_end=160
-  _globals['_CUSTOMERLISTRESPONSE']._serialized_start=162
-  _globals['_CUSTOMERLISTRESPONSE']._serialized_end=234
-  _globals['_CUSTOMERBYIDREQUEST']._serialized_start=236
-  _globals['_CUSTOMERBYIDREQUEST']._serialized_end=269
-  _globals['_CREATECUSTOMERREQUEST']._serialized_start=271
-  _globals['_CREATECUSTOMERREQUEST']._serialized_end=356
-  _globals['_UPDATECUSTOMERREQUEST']._serialized_start=358
-  _globals['_UPDATECUSTOMERREQUEST']._serialized_end=442
-  _globals['_DEACTIVATECUSTOMERREQUEST']._serialized_start=444
-  _globals['_DEACTIVATECUSTOMERREQUEST']._serialized_end=483
-  _globals['_VALIDATECUSTOMERREQUEST']._serialized_start=485
-  _globals['_VALIDATECUSTOMERREQUEST']._serialized_end=522
-  _globals['_VALIDATECUSTOMERRESPONSE']._serialized_start=524
-  _globals['_VALIDATECUSTOMERRESPONSE']._serialized_end=602
-  _globals['_CUSTOMERSERVICE']._serialized_start=605
-  _globals['_CUSTOMERSERVICE']._serialized_end=1144
+  _globals['_ROL']._serialized_start=1108
+  _globals['_ROL']._serialized_end=1166
+  _globals['_CLIENTE']._serialized_start=43
+  _globals['_CLIENTE']._serialized_end=160
+  _globals['_LISTARCLIENTESREQUEST']._serialized_start=162
+  _globals['_LISTARCLIENTESREQUEST']._serialized_end=185
+  _globals['_LISTARCLIENTESRESPONSE']._serialized_start=187
+  _globals['_LISTARCLIENTESRESPONSE']._serialized_end=251
+  _globals['_OBTENERCLIENTEREQUEST']._serialized_start=253
+  _globals['_OBTENERCLIENTEREQUEST']._serialized_end=288
+  _globals['_OBTENERCLIENTERESPONSE']._serialized_start=290
+  _globals['_OBTENERCLIENTERESPONSE']._serialized_end=353
+  _globals['_CREARCLIENTEREQUEST']._serialized_start=355
+  _globals['_CREARCLIENTEREQUEST']._serialized_end=456
+  _globals['_CREARCLIENTERESPONSE']._serialized_start=458
+  _globals['_CREARCLIENTERESPONSE']._serialized_end=519
+  _globals['_ACTUALIZARCLIENTEREQUEST']._serialized_start=521
+  _globals['_ACTUALIZARCLIENTEREQUEST']._serialized_end=626
+  _globals['_ACTUALIZARCLIENTERESPONSE']._serialized_start=628
+  _globals['_ACTUALIZARCLIENTERESPONSE']._serialized_end=694
+  _globals['_DARDEBAJACLIENTEREQUEST']._serialized_start=696
+  _globals['_DARDEBAJACLIENTEREQUEST']._serialized_end=733
+  _globals['_DARDEBAJACLIENTERESPONSE']._serialized_start=735
+  _globals['_DARDEBAJACLIENTERESPONSE']._serialized_end=800
+  _globals['_VALIDARCLIENTEACTIVOREQUEST']._serialized_start=802
+  _globals['_VALIDARCLIENTEACTIVOREQUEST']._serialized_end=843
+  _globals['_VALIDARCLIENTEACTIVORESPONSE']._serialized_start=845
+  _globals['_VALIDARCLIENTEACTIVORESPONSE']._serialized_end=924
+  _globals['_AUTENTICARUSUARIOREQUEST']._serialized_start=926
+  _globals['_AUTENTICARUSUARIOREQUEST']._serialized_end=989
+  _globals['_AUTENTICARUSUARIORESPONSE']._serialized_start=991
+  _globals['_AUTENTICARUSUARIORESPONSE']._serialized_end=1106
+  _globals['_CUSTOMERSERVICE']._serialized_start=1169
+  _globals['_CUSTOMERSERVICE']._serialized_end=1859
 # @@protoc_insertion_point(module_scope)

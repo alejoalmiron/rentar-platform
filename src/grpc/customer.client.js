@@ -1,18 +1,22 @@
 import { callGrpc } from './clientFactory.js';
-import { normalizeDates } from './timestamps.js';
-
-const unwrap = (response, key) => normalizeDates(response?.[key] ?? response);
+import { fromProtoEnum } from './enums.js';
 
 export const customerClient = {
-  authenticate(username, password) {
-    return callGrpc('customer', 'AuthenticateUser', { username, password });
+  async authenticate(username, password) {
+    const response = await callGrpc('customer', 'AutenticarUsuario', { usuario: username, contrasena: password });
+    return {
+      userId: response.usuarioId,
+      username: response.usuario,
+      role: fromProtoEnum('ROL', response.rol),
+      customerId: response.clienteId,
+    };
   },
   async list() {
-    const response = await callGrpc('customer', 'ListCustomers', {});
-    return normalizeDates(response.customers || []);
+    const response = await callGrpc('customer', 'ListarClientes', {});
+    return response.clientes || [];
   },
   async getById(id) {
-    return unwrap(await callGrpc('customer', 'GetCustomerById', { id: String(id) }), 'customer');
+    return (await callGrpc('customer', 'ObtenerCliente', { id: String(id) })).cliente;
   },
   async getByDocument(documento) {
     const customers = await this.list();
@@ -25,33 +29,33 @@ export const customerClient = {
     return customer;
   },
   async create(cliente) {
-    return unwrap(await callGrpc('customer', 'CreateCustomer', {
+    return (await callGrpc('customer', 'CrearCliente', {
       dni: cliente.dni || cliente.documento,
       nombre: cliente.nombre,
       apellido: cliente.apellido,
       email: cliente.email,
       telefono: cliente.telefono || '',
-    }), 'customer');
+    })).cliente;
   },
   async update(id, cliente) {
-    return unwrap(await callGrpc('customer', 'UpdateCustomer', {
+    return (await callGrpc('customer', 'ActualizarCliente', {
       id: String(id),
       nombre: cliente.nombre || '',
       apellido: cliente.apellido || '',
       email: cliente.email || '',
       telefono: cliente.telefono || '',
-    }), 'customer');
+    })).cliente;
   },
   async deactivate(id) {
-    return unwrap(await callGrpc('customer', 'DeactivateCustomer', { id: String(id) }), 'customer');
+    return (await callGrpc('customer', 'DarDeBajaCliente', { id: String(id) })).cliente;
   },
   validate({ id }) {
-    return callGrpc('customer', 'ValidateActiveCustomer', { id: String(id) })
+    return callGrpc('customer', 'ValidarClienteActivo', { id: String(id) })
       .then((response) => ({
-        exists: response.exists,
-        active: response.isActive,
-        canRent: response.isActive,
-        message: response.message,
+        exists: response.existe,
+        active: response.activo,
+        canRent: response.activo,
+        message: response.mensaje,
       }));
   },
 };

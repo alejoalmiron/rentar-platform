@@ -72,7 +72,7 @@ const options = {
         Cliente: {
           type: 'object',
           properties: {
-            id: { type: 'integer', example: 1 },
+            id: { type: 'string', format: 'uuid', example: 'e3c157dd-7cc8-4a34-8bb3-833bcb43b8e2' },
             documento: { type: 'string', example: '40123456' },
             dni: { type: 'string', example: '40123456' },
             nombre: { type: 'string', example: 'Carlos' },
@@ -84,14 +84,14 @@ const options = {
         Reserva: {
           type: 'object',
           properties: {
-            id: { type: 'integer', example: 1 },
-            clienteId: { type: 'integer', example: 1 },
+            id: { type: 'string', format: 'uuid', example: '85647a01-0483-48f4-87b9-4035cac1af7c' },
+            clienteId: { type: 'string', format: 'uuid', example: 'e3c157dd-7cc8-4a34-8bb3-833bcb43b8e2' },
             vehiculoId: { type: 'integer', example: 1 },
             clienteDni: { type: 'string', example: '40123456' },
             vehiculoPatente: { type: 'string', example: 'AA123BC' },
             fechaInicio: { type: 'string', format: 'date', example: '2030-01-10' },
             fechaFin: { type: 'string', format: 'date', example: '2030-01-13' },
-            importeTotal: { type: 'number', format: 'float', example: 135000 },
+            precioTotal: { type: 'number', format: 'float', example: 135000 },
             estado: { type: 'string', example: 'CONFIRMADA' },
           },
         },
@@ -144,7 +144,7 @@ const options = {
         post: { tags: ['Clientes'], summary: 'Crear cliente', requestBody: { required: true, content: { 'application/json': { schema: { $ref: '#/components/schemas/Cliente' } } } }, responses: { 201: { description: 'Cliente creado' }, 500: { description: 'Error de servidor' } } },
       },
       '/api/clientes/{id}': {
-        parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'integer' } }],
+        parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } }],
         get: { tags: ['Clientes'], summary: 'Obtener cliente', responses: { 200: { description: 'Cliente encontrado' }, 404: { description: 'No encontrado' } } },
         put: { tags: ['Clientes'], summary: 'Modificar cliente', requestBody: { required: true, content: { 'application/json': { schema: { $ref: '#/components/schemas/Cliente' } } } }, responses: { 200: { description: 'Cliente actualizado' } } },
         delete: { tags: ['Clientes'], summary: 'Dar de baja cliente', responses: { 200: { description: 'Baja logica realizada' } } },
@@ -153,7 +153,7 @@ const options = {
         post: { tags: ['Reservas'], summary: 'Crear reserva', requestBody: { required: true, content: { 'application/json': { schema: { $ref: '#/components/schemas/Reserva' }, example: { clienteDni: '40123456', vehiculoPatente: 'AA123BC', fechaInicio: '2030-01-10', fechaFin: '2030-01-13' } } } }, responses: { 201: { description: 'Reserva creada' }, 400: { description: 'Validacion fallida' } } },
       },
       '/api/reservas/{id}/cancelar': {
-        parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'integer' } }],
+        parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } }],
         patch: { tags: ['Reservas'], summary: 'Cancelar reserva', responses: { 200: { description: 'Reserva cancelada' }, 400: { description: 'No se puede cancelar' }, 404: { description: 'No encontrada' } } },
       },
     },

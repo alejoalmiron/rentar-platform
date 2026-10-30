@@ -1,0 +1,12 @@
+FROM python:3.10-slim
+
+WORKDIR /app
+
+COPY services/vehicle-service/requirements.txt /tmp/vehicle-requirements.txt
+COPY workers/common/requirements.txt /tmp/worker-requirements.txt
+RUN pip install --no-cache-dir -r /tmp/vehicle-requirements.txt -r /tmp/worker-requirements.txt
+
+COPY workers /app/workers
+COPY services/vehicle-service/app /app/app
+
+ENV PYTHONPATH=/app:/app/workers

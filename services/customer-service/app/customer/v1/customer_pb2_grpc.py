@@ -26,7 +26,10 @@ if _version_not_supported:
 
 
 class CustomerServiceStub(object):
-    """Missing associated documentation comment in .proto file."""
+    """CustomerService administra los clientes de Rentar (alta, modificación, baja
+    lógica y consulta), valida si un cliente puede alquilar y autentica las
+    cuentas de usuario. Es el único dueño de la base customer_db.
+    """
 
     def __init__(self, channel):
         """Constructor.
@@ -34,73 +37,109 @@ class CustomerServiceStub(object):
         Args:
             channel: A grpc.Channel.
         """
-        self.ListCustomers = channel.unary_unary(
-                '/customer.v1.CustomerService/ListCustomers',
-                request_serializer=customer_dot_v1_dot_customer__pb2.Empty.SerializeToString,
-                response_deserializer=customer_dot_v1_dot_customer__pb2.CustomerListResponse.FromString,
+        self.ListarClientes = channel.unary_unary(
+                '/customer.v1.CustomerService/ListarClientes',
+                request_serializer=customer_dot_v1_dot_customer__pb2.ListarClientesRequest.SerializeToString,
+                response_deserializer=customer_dot_v1_dot_customer__pb2.ListarClientesResponse.FromString,
                 _registered_method=True)
-        self.GetCustomerById = channel.unary_unary(
-                '/customer.v1.CustomerService/GetCustomerById',
-                request_serializer=customer_dot_v1_dot_customer__pb2.CustomerByIdRequest.SerializeToString,
-                response_deserializer=customer_dot_v1_dot_customer__pb2.CustomerResponse.FromString,
+        self.ObtenerCliente = channel.unary_unary(
+                '/customer.v1.CustomerService/ObtenerCliente',
+                request_serializer=customer_dot_v1_dot_customer__pb2.ObtenerClienteRequest.SerializeToString,
+                response_deserializer=customer_dot_v1_dot_customer__pb2.ObtenerClienteResponse.FromString,
                 _registered_method=True)
-        self.CreateCustomer = channel.unary_unary(
-                '/customer.v1.CustomerService/CreateCustomer',
-                request_serializer=customer_dot_v1_dot_customer__pb2.CreateCustomerRequest.SerializeToString,
-                response_deserializer=customer_dot_v1_dot_customer__pb2.CustomerResponse.FromString,
+        self.CrearCliente = channel.unary_unary(
+                '/customer.v1.CustomerService/CrearCliente',
+                request_serializer=customer_dot_v1_dot_customer__pb2.CrearClienteRequest.SerializeToString,
+                response_deserializer=customer_dot_v1_dot_customer__pb2.CrearClienteResponse.FromString,
                 _registered_method=True)
-        self.UpdateCustomer = channel.unary_unary(
-                '/customer.v1.CustomerService/UpdateCustomer',
-                request_serializer=customer_dot_v1_dot_customer__pb2.UpdateCustomerRequest.SerializeToString,
-                response_deserializer=customer_dot_v1_dot_customer__pb2.CustomerResponse.FromString,
+        self.ActualizarCliente = channel.unary_unary(
+                '/customer.v1.CustomerService/ActualizarCliente',
+                request_serializer=customer_dot_v1_dot_customer__pb2.ActualizarClienteRequest.SerializeToString,
+                response_deserializer=customer_dot_v1_dot_customer__pb2.ActualizarClienteResponse.FromString,
                 _registered_method=True)
-        self.DeactivateCustomer = channel.unary_unary(
-                '/customer.v1.CustomerService/DeactivateCustomer',
-                request_serializer=customer_dot_v1_dot_customer__pb2.DeactivateCustomerRequest.SerializeToString,
-                response_deserializer=customer_dot_v1_dot_customer__pb2.CustomerResponse.FromString,
+        self.DarDeBajaCliente = channel.unary_unary(
+                '/customer.v1.CustomerService/DarDeBajaCliente',
+                request_serializer=customer_dot_v1_dot_customer__pb2.DarDeBajaClienteRequest.SerializeToString,
+                response_deserializer=customer_dot_v1_dot_customer__pb2.DarDeBajaClienteResponse.FromString,
                 _registered_method=True)
-        self.ValidateActiveCustomer = channel.unary_unary(
-                '/customer.v1.CustomerService/ValidateActiveCustomer',
-                request_serializer=customer_dot_v1_dot_customer__pb2.ValidateCustomerRequest.SerializeToString,
-                response_deserializer=customer_dot_v1_dot_customer__pb2.ValidateCustomerResponse.FromString,
+        self.ValidarClienteActivo = channel.unary_unary(
+                '/customer.v1.CustomerService/ValidarClienteActivo',
+                request_serializer=customer_dot_v1_dot_customer__pb2.ValidarClienteActivoRequest.SerializeToString,
+                response_deserializer=customer_dot_v1_dot_customer__pb2.ValidarClienteActivoResponse.FromString,
+                _registered_method=True)
+        self.AutenticarUsuario = channel.unary_unary(
+                '/customer.v1.CustomerService/AutenticarUsuario',
+                request_serializer=customer_dot_v1_dot_customer__pb2.AutenticarUsuarioRequest.SerializeToString,
+                response_deserializer=customer_dot_v1_dot_customer__pb2.AutenticarUsuarioResponse.FromString,
                 _registered_method=True)
 
 
 class CustomerServiceServicer(object):
-    """Missing associated documentation comment in .proto file."""
+    """CustomerService administra los clientes de Rentar (alta, modificación, baja
+    lógica y consulta), valida si un cliente puede alquilar y autentica las
+    cuentas de usuario. Es el único dueño de la base customer_db.
+    """
 
-    def ListCustomers(self, request, context):
-        """Missing associated documentation comment in .proto file."""
+    def ListarClientes(self, request, context):
+        """Lista todos los clientes, activos e inactivos.
+        """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
-    def GetCustomerById(self, request, context):
-        """Missing associated documentation comment in .proto file."""
+    def ObtenerCliente(self, request, context):
+        """Obtiene un cliente por id.
+        Errores: NOT_FOUND si no existe.
+        """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
-    def CreateCustomer(self, request, context):
-        """Missing associated documentation comment in .proto file."""
+    def CrearCliente(self, request, context):
+        """Registra un cliente nuevo, que queda activo.
+        Errores: INVALID_ARGUMENT si falta algún dato obligatorio;
+        ALREADY_EXISTS si el DNI o el email ya están registrados.
+        """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
-    def UpdateCustomer(self, request, context):
-        """Missing associated documentation comment in .proto file."""
+    def ActualizarCliente(self, request, context):
+        """Modifica los datos de contacto de un cliente. El DNI no es modificable.
+        Los campos enviados vacíos conservan su valor actual.
+        Errores: NOT_FOUND si no existe; ALREADY_EXISTS si el nuevo email ya
+        pertenece a otro cliente.
+        """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
-    def DeactivateCustomer(self, request, context):
-        """Missing associated documentation comment in .proto file."""
+    def DarDeBajaCliente(self, request, context):
+        """Realiza la baja lógica de un cliente: el registro se conserva con
+        activo = false y el cliente no puede realizar nuevos alquileres.
+        Errores: NOT_FOUND si no existe.
+        """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
-    def ValidateActiveCustomer(self, request, context):
-        """Missing associated documentation comment in .proto file."""
+    def ValidarClienteActivo(self, request, context):
+        """Verifica que un cliente exista y se encuentre activo, como paso previo a
+        crear una reserva. Nunca falla por cliente inexistente: lo informa en la
+        respuesta.
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def AutenticarUsuario(self, request, context):
+        """Valida las credenciales de una cuenta y devuelve su identidad y rol.
+        Las contraseñas se comparan contra un hash bcrypt.
+        Errores: INVALID_ARGUMENT si falta usuario o contraseña;
+        UNAUTHENTICATED si las credenciales son inválidas o la cuenta (o su
+        cliente asociado) está inactiva; PERMISSION_DENIED si la cuenta tiene un
+        rol desconocido.
+        """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
@@ -108,35 +147,40 @@ class CustomerServiceServicer(object):
 
 def add_CustomerServiceServicer_to_server(servicer, server):
     rpc_method_handlers = {
-            'ListCustomers': grpc.unary_unary_rpc_method_handler(
-                    servicer.ListCustomers,
-                    request_deserializer=customer_dot_v1_dot_customer__pb2.Empty.FromString,
-                    response_serializer=customer_dot_v1_dot_customer__pb2.CustomerListResponse.SerializeToString,
+            'ListarClientes': grpc.unary_unary_rpc_method_handler(
+                    servicer.ListarClientes,
+                    request_deserializer=customer_dot_v1_dot_customer__pb2.ListarClientesRequest.FromString,
+                    response_serializer=customer_dot_v1_dot_customer__pb2.ListarClientesResponse.SerializeToString,
             ),
-            'GetCustomerById': grpc.unary_unary_rpc_method_handler(
-                    servicer.GetCustomerById,
-                    request_deserializer=customer_dot_v1_dot_customer__pb2.CustomerByIdRequest.FromString,
-                    response_serializer=customer_dot_v1_dot_customer__pb2.CustomerResponse.SerializeToString,
+            'ObtenerCliente': grpc.unary_unary_rpc_method_handler(
+                    servicer.ObtenerCliente,
+                    request_deserializer=customer_dot_v1_dot_customer__pb2.ObtenerClienteRequest.FromString,
+                    response_serializer=customer_dot_v1_dot_customer__pb2.ObtenerClienteResponse.SerializeToString,
             ),
-            'CreateCustomer': grpc.unary_unary_rpc_method_handler(
-                    servicer.CreateCustomer,
-                    request_deserializer=customer_dot_v1_dot_customer__pb2.CreateCustomerRequest.FromString,
-                    response_serializer=customer_dot_v1_dot_customer__pb2.CustomerResponse.SerializeToString,
+            'CrearCliente': grpc.unary_unary_rpc_method_handler(
+                    servicer.CrearCliente,
+                    request_deserializer=customer_dot_v1_dot_customer__pb2.CrearClienteRequest.FromString,
+                    response_serializer=customer_dot_v1_dot_customer__pb2.CrearClienteResponse.SerializeToString,
             ),
-            'UpdateCustomer': grpc.unary_unary_rpc_method_handler(
-                    servicer.UpdateCustomer,
-                    request_deserializer=customer_dot_v1_dot_customer__pb2.UpdateCustomerRequest.FromString,
-                    response_serializer=customer_dot_v1_dot_customer__pb2.CustomerResponse.SerializeToString,
+            'ActualizarCliente': grpc.unary_unary_rpc_method_handler(
+                    servicer.ActualizarCliente,
+                    request_deserializer=customer_dot_v1_dot_customer__pb2.ActualizarClienteRequest.FromString,
+                    response_serializer=customer_dot_v1_dot_customer__pb2.ActualizarClienteResponse.SerializeToString,
             ),
-            'DeactivateCustomer': grpc.unary_unary_rpc_method_handler(
-                    servicer.DeactivateCustomer,
-                    request_deserializer=customer_dot_v1_dot_customer__pb2.DeactivateCustomerRequest.FromString,
-                    response_serializer=customer_dot_v1_dot_customer__pb2.CustomerResponse.SerializeToString,
+            'DarDeBajaCliente': grpc.unary_unary_rpc_method_handler(
+                    servicer.DarDeBajaCliente,
+                    request_deserializer=customer_dot_v1_dot_customer__pb2.DarDeBajaClienteRequest.FromString,
+                    response_serializer=customer_dot_v1_dot_customer__pb2.DarDeBajaClienteResponse.SerializeToString,
             ),
-            'ValidateActiveCustomer': grpc.unary_unary_rpc_method_handler(
-                    servicer.ValidateActiveCustomer,
-                    request_deserializer=customer_dot_v1_dot_customer__pb2.ValidateCustomerRequest.FromString,
-                    response_serializer=customer_dot_v1_dot_customer__pb2.ValidateCustomerResponse.SerializeToString,
+            'ValidarClienteActivo': grpc.unary_unary_rpc_method_handler(
+                    servicer.ValidarClienteActivo,
+                    request_deserializer=customer_dot_v1_dot_customer__pb2.ValidarClienteActivoRequest.FromString,
+                    response_serializer=customer_dot_v1_dot_customer__pb2.ValidarClienteActivoResponse.SerializeToString,
+            ),
+            'AutenticarUsuario': grpc.unary_unary_rpc_method_handler(
+                    servicer.AutenticarUsuario,
+                    request_deserializer=customer_dot_v1_dot_customer__pb2.AutenticarUsuarioRequest.FromString,
+                    response_serializer=customer_dot_v1_dot_customer__pb2.AutenticarUsuarioResponse.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
@@ -147,10 +191,13 @@ def add_CustomerServiceServicer_to_server(servicer, server):
 
  # This class is part of an EXPERIMENTAL API.
 class CustomerService(object):
-    """Missing associated documentation comment in .proto file."""
+    """CustomerService administra los clientes de Rentar (alta, modificación, baja
+    lógica y consulta), valida si un cliente puede alquilar y autentica las
+    cuentas de usuario. Es el único dueño de la base customer_db.
+    """
 
     @staticmethod
-    def ListCustomers(request,
+    def ListarClientes(request,
             target,
             options=(),
             channel_credentials=None,
@@ -163,9 +210,9 @@ class CustomerService(object):
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/customer.v1.CustomerService/ListCustomers',
-            customer_dot_v1_dot_customer__pb2.Empty.SerializeToString,
-            customer_dot_v1_dot_customer__pb2.CustomerListResponse.FromString,
+            '/customer.v1.CustomerService/ListarClientes',
+            customer_dot_v1_dot_customer__pb2.ListarClientesRequest.SerializeToString,
+            customer_dot_v1_dot_customer__pb2.ListarClientesResponse.FromString,
             options,
             channel_credentials,
             insecure,
@@ -177,7 +224,7 @@ class CustomerService(object):
             _registered_method=True)
 
     @staticmethod
-    def GetCustomerById(request,
+    def ObtenerCliente(request,
             target,
             options=(),
             channel_credentials=None,
@@ -190,9 +237,9 @@ class CustomerService(object):
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/customer.v1.CustomerService/GetCustomerById',
-            customer_dot_v1_dot_customer__pb2.CustomerByIdRequest.SerializeToString,
-            customer_dot_v1_dot_customer__pb2.CustomerResponse.FromString,
+            '/customer.v1.CustomerService/ObtenerCliente',
+            customer_dot_v1_dot_customer__pb2.ObtenerClienteRequest.SerializeToString,
+            customer_dot_v1_dot_customer__pb2.ObtenerClienteResponse.FromString,
             options,
             channel_credentials,
             insecure,
@@ -204,7 +251,7 @@ class CustomerService(object):
             _registered_method=True)
 
     @staticmethod
-    def CreateCustomer(request,
+    def CrearCliente(request,
             target,
             options=(),
             channel_credentials=None,
@@ -217,9 +264,9 @@ class CustomerService(object):
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/customer.v1.CustomerService/CreateCustomer',
-            customer_dot_v1_dot_customer__pb2.CreateCustomerRequest.SerializeToString,
-            customer_dot_v1_dot_customer__pb2.CustomerResponse.FromString,
+            '/customer.v1.CustomerService/CrearCliente',
+            customer_dot_v1_dot_customer__pb2.CrearClienteRequest.SerializeToString,
+            customer_dot_v1_dot_customer__pb2.CrearClienteResponse.FromString,
             options,
             channel_credentials,
             insecure,
@@ -231,7 +278,7 @@ class CustomerService(object):
             _registered_method=True)
 
     @staticmethod
-    def UpdateCustomer(request,
+    def ActualizarCliente(request,
             target,
             options=(),
             channel_credentials=None,
@@ -244,9 +291,9 @@ class CustomerService(object):
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/customer.v1.CustomerService/UpdateCustomer',
-            customer_dot_v1_dot_customer__pb2.UpdateCustomerRequest.SerializeToString,
-            customer_dot_v1_dot_customer__pb2.CustomerResponse.FromString,
+            '/customer.v1.CustomerService/ActualizarCliente',
+            customer_dot_v1_dot_customer__pb2.ActualizarClienteRequest.SerializeToString,
+            customer_dot_v1_dot_customer__pb2.ActualizarClienteResponse.FromString,
             options,
             channel_credentials,
             insecure,
@@ -258,7 +305,7 @@ class CustomerService(object):
             _registered_method=True)
 
     @staticmethod
-    def DeactivateCustomer(request,
+    def DarDeBajaCliente(request,
             target,
             options=(),
             channel_credentials=None,
@@ -271,9 +318,9 @@ class CustomerService(object):
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/customer.v1.CustomerService/DeactivateCustomer',
-            customer_dot_v1_dot_customer__pb2.DeactivateCustomerRequest.SerializeToString,
-            customer_dot_v1_dot_customer__pb2.CustomerResponse.FromString,
+            '/customer.v1.CustomerService/DarDeBajaCliente',
+            customer_dot_v1_dot_customer__pb2.DarDeBajaClienteRequest.SerializeToString,
+            customer_dot_v1_dot_customer__pb2.DarDeBajaClienteResponse.FromString,
             options,
             channel_credentials,
             insecure,
@@ -285,7 +332,7 @@ class CustomerService(object):
             _registered_method=True)
 
     @staticmethod
-    def ValidateActiveCustomer(request,
+    def ValidarClienteActivo(request,
             target,
             options=(),
             channel_credentials=None,
@@ -298,9 +345,36 @@ class CustomerService(object):
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/customer.v1.CustomerService/ValidateActiveCustomer',
-            customer_dot_v1_dot_customer__pb2.ValidateCustomerRequest.SerializeToString,
-            customer_dot_v1_dot_customer__pb2.ValidateCustomerResponse.FromString,
+            '/customer.v1.CustomerService/ValidarClienteActivo',
+            customer_dot_v1_dot_customer__pb2.ValidarClienteActivoRequest.SerializeToString,
+            customer_dot_v1_dot_customer__pb2.ValidarClienteActivoResponse.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def AutenticarUsuario(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/customer.v1.CustomerService/AutenticarUsuario',
+            customer_dot_v1_dot_customer__pb2.AutenticarUsuarioRequest.SerializeToString,
+            customer_dot_v1_dot_customer__pb2.AutenticarUsuarioResponse.FromString,
             options,
             channel_credentials,
             insecure,

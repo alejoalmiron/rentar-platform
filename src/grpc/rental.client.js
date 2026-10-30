@@ -1,24 +1,32 @@
 import { callGrpc } from './clientFactory.js';
-import { normalizeDates } from './timestamps.js';
+import { fromProtoEnum } from './enums.js';
+import { normalizeDates, toTimestamp } from './timestamps.js';
 
-const unwrap = (response, key) => normalizeDates(response?.[key] ?? response);
-
-function toIsoDate(value) {
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) {
+function toProtoTimestamp(value) {
+  const timestamp = toTimestamp(value);
+  if (!timestamp) {
     const error = new Error('Las fechas de la reserva deben ser válidas');
     error.code = 3;
     throw error;
   }
-  return date.toISOString();
+  return timestamp;
+}
+
+function fromProtoRenta(renta) {
+  return normalizeDates({ ...renta, estado: fromProtoEnum('ESTADO_RENTA', renta.estado) });
+}
+
+function filterByEstado(rentas, estado) {
+  const reservations = (rentas || []).map(fromProtoRenta);
+  return estado ? reservations.filter((reservation) => reservation.estado === estado) : reservations;
 }
 
 export const rentalClient = {
   async checkAvailability({ vehiculoId, fechaInicio, fechaFin }) {
     const response = await callGrpc('rental', 'VerificarSolapamiento', {
       vehiculoId: String(vehiculoId),
-      fechaInicio: toIsoDate(fechaInicio),
-      fechaFin: toIsoDate(fechaFin),
+      fechaInicio: toProtoTimestamp(fechaInicio),
+      fechaFin: toProtoTimestamp(fechaFin),
     });
     return { available: !response.haySolapamiento };
   },
@@ -26,30 +34,28 @@ export const rentalClient = {
     const response = await callGrpc('rental', 'CrearRenta', {
       clienteId: String(clienteId),
       vehiculoId: String(vehiculoId),
-      fechaInicio: toIsoDate(fechaInicio),
-      fechaFin: toIsoDate(fechaFin),
+      fechaInicio: toProtoTimestamp(fechaInicio),
+      fechaFin: toProtoTimestamp(fechaFin),
       precioDiario: Number(precioDiario),
     });
-    return unwrap(response, 'renta');
+    return fromProtoRenta(response.renta);
   },
   async getById(id) {
-    return unwrap(await callGrpc('rental', 'ObtenerRenta', { id: String(id) }), 'renta');
+    return fromProtoRenta((await callGrpc('rental', 'ObtenerRenta', { id: String(id) })).renta);
   },
   async list({ clienteId, estado } = {}) {
     const response = await callGrpc('rental', 'ListarRentasPorCliente', {
       clienteId: String(clienteId),
     });
-    const reservations = normalizeDates(response.rentas || []);
-    return estado ? reservations.filter((reservation) => reservation.estado === estado) : reservations;
+    return filterByEstado(response.rentas, estado);
   },
   async cancel(id) {
-    return unwrap(await callGrpc('rental', 'CancelarRenta', { id: String(id) }), 'renta');
+    return fromProtoRenta((await callGrpc('rental', 'CancelarRenta', { id: String(id) })).renta);
   },
   async history({ clienteId, estado } = {}) {
     const response = await callGrpc('rental', 'ObtenerHistorialRentas', {
       ...(clienteId !== undefined && { clienteId: String(clienteId) }),
     });
-    const reservations = normalizeDates(response.rentas || []);
-    return estado ? reservations.filter((reservation) => reservation.estado === estado) : reservations;
+    return filterByEstado(response.rentas, estado);
   },
 };

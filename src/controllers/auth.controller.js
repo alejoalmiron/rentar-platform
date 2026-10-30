@@ -10,20 +10,28 @@ export async function login(req, res) {
 
   try {
     const user = await customerClient.authenticate(username, password);
+    const userId = user.userId || user.user_id;
+    const customerId = user.customerId || user.customer_id;
+    if (!userId || (user.role === 'CLIENTE' && !customerId)) {
+      return res.status(503).json({
+        error: 'El servicio de clientes devolvió una identidad incompleta',
+        codigo: 'IDENTITY_INCOMPLETE',
+      });
+    }
     const token = signToken({
-      id: user.userId,
+      id: userId,
       username: user.username,
       role: user.role,
-      customerId: user.customerId,
+      customerId,
     });
     return res.json({
       token,
       expiresIn: 28800,
       user: {
-        id: user.userId,
+        id: userId,
         username: user.username,
         role: user.role,
-        customerId: user.customerId || null,
+        customerId: customerId || null,
       },
     });
   } catch (error) {

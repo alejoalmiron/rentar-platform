@@ -69,10 +69,13 @@ Un cliente registró un vehículo propio para incorporarlo al sistema (comienza 
 ```json
 {
   "vehiculoExternoId": 50,
-  "clienteId": 89,
+  "clienteId": "7c9e6679-7425-40de-944b-e07fc1f90ae7",
+  "documento": "30123456",
   "patente": "DEF456"
 }
 ```
+
+`documento` es el DNI del cliente: el validador de titularidad lo necesita para verificar que el cliente es titular de la patente.
 
 ### 4. `vehiculos.externos.validacion.patente`
 
@@ -103,7 +106,7 @@ Resultado de la validación de titularidad (el cliente es titular del vehículo)
 ```json
 {
   "vehiculoExternoId": 50,
-  "clienteId": 89,
+  "clienteId": "7c9e6679-7425-40de-944b-e07fc1f90ae7",
   "documento": "30123456",
   "patente": "DEF456",
   "resultado": "VALIDADO"
@@ -169,7 +172,7 @@ Resultado del mantenimiento preventivo asociado a la reserva.
 - **Formato:** JSON UTF-8, `content-type: application/json`, entrega persistente.
 - **Fechas:** ISO-8601 (`YYYY-MM-DDTHH:mm:ss`).
 - **Correlación:** los eventos de un mismo proceso comparten el identificador del agregado (`vehiculoId`, `vehiculoExternoId` o `reservaId`).
-- **Identificadores:** numéricos para entidades del dominio interno (`vehiculoId`, `reservaId`); `clienteId` se corresponde con el identificador del Customer Service.
+- **Identificadores:** numéricos para entidades del dominio interno (`vehiculoId`, `reservaId`); `clienteId` conserva el UUID/string del Customer Service.
 - **Helpers:** Python → `workers/common/messaging.py` (workers) y `app/messaging.py` dentro de cada servicio; Node → `src/messaging/rabbitmq.js`. Todos implementan conexión con reintentos, publicación y consumo con ack/nack a DLQ.
 - **Declaración de topología:** `python workers/common/declare_topology.py` o `docker compose run --rm broker-init`.
 - **Schemas:** [contratos.schema.json](contratos.schema.json). Productores deben respetar `required` y los `enum` de `resultado`.
