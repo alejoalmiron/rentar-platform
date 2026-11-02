@@ -247,6 +247,25 @@ services:
       broker-init:
         condition: service_completed_successfully
 
+  # Carga datos de prueba a través del Gateway y termina. Lo ya cargado no se duplica.
+  seed:
+    image: node:22-alpine
+    working_dir: /seed
+    command: ["node", "seed.js"]
+    volumes:
+      - ./scripts:/seed:ro
+    environment:
+      GATEWAY_URL: http://api-gateway:5000
+      SEED_ADMIN_USERNAME: ${SEED_ADMIN_USERNAME:?Set SEED_ADMIN_USERNAME in .env}
+      SEED_ADMIN_PASSWORD: ${SEED_ADMIN_PASSWORD:?Set SEED_ADMIN_PASSWORD in .env}
+      SEED_CLIENT_USERNAME: ${SEED_CLIENT_USERNAME:?Set SEED_CLIENT_USERNAME in .env}
+      SEED_CLIENT_PASSWORD: ${SEED_CLIENT_PASSWORD:?Set SEED_CLIENT_PASSWORD in .env}
+      SEED_CLIENT_DNI: ${SEED_CLIENT_DNI:?Set SEED_CLIENT_DNI in .env}
+    depends_on:
+      api-gateway:
+        condition: service_started
+    restart: "no"
+
   frontend:
     build: ./front/mi-app
     environment:
