@@ -37,6 +37,19 @@ Customer Service crea estas cuentas en el primer arranque:
 | Administrador | `admin` | `AdminRentar2026!` |
 | Cliente | `cliente` | `ClienteRentar2026!` |
 
+### Datos de prueba
+
+Al levantar el stack, el contenedor `seed` ejecuta [scripts/seed.js](scripts/seed.js) y termina (`Exited (0)`). Carga los datos **a través del API Gateway**, como lo haría un usuario: pasa por las mismas validaciones y dispara los mismos eventos, sin acceder a las bases de los servicios.
+
+| Datos | Detalle |
+| --- | --- |
+| 7 vehículos | `AB123CD`, `AC456EF`, `AD789GH`, `AE012IJ`, `AF345KL`, `AG678MN` quedan `VALIDADO`; `XYZ999` queda `ROBADO` y no se puede reservar. |
+| 3 clientes | María González (`30123456`), Juan Pérez (`33444555`) y Lucía Fernández (`35666777`), además de Cliente Demo (`40999000`). |
+| 6 reservas | Con fechas relativas al momento de la carga. Cliente Demo tiene una confirmada con mantenimiento `REALIZADO`, una que empieza en 12 horas con mantenimiento `NO_REALIZADO` y una `CANCELADA`. |
+| 2 vehículos externos | Del usuario `cliente`: `DEF456` termina `DISPONIBLE` y `GHI789` termina `RECHAZADO` por titularidad. |
+
+Si el script se vuelve a ejecutar, lo que ya existe no se duplica. Para cargarlo de nuevo sobre una base limpia: `docker compose --env-file .env.example down -v` y volver a levantar. Las patentes `ABC123` y `AA123BB` quedan libres para probar en vivo la incorporación de vehículos externos.
+
 Para detener el sistema: `docker compose --env-file .env.example down`. Los datos persisten en volúmenes de Docker; agregá `-v` para borrarlos.
 
 `.env.example` trae valores de desarrollo listos para usar. Para personalizarlos, copialo como `.env` (está ignorado por Git), editalo y levantá con `docker compose up --build -d`. Las credenciales de ejemplo son solo para uso local; fuera de desarrollo configurá un `JWT_SECRET` aleatorio de al menos 32 caracteres. Las cuentas se configuran con `SEED_ADMIN_USERNAME`, `SEED_ADMIN_PASSWORD`, `SEED_CLIENT_USERNAME`, `SEED_CLIENT_PASSWORD` y `SEED_CLIENT_DNI`; el seed no reemplaza contraseñas de cuentas que ya existen.
